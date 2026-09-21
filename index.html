@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>배분율 계산기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F5F0;
+    --surface:#FFFFFF;
+    --surface-2:#EFEEE6;
+    --border:#E1DFD4;
+    --text:#1C231F;
+    --text-dim:#5C665E;
+    --text-faint:#8A9289;
+    --accent:#1F6F5C;
+    --accent-strong:#154F41;
+    --accent-tint:#E4F0EC;
+    --amber:#9A5B12;
+    --amber-tint:#FBEEDD;
+    --shadow:0 1px 2px rgba(28,35,31,0.06),0 8px 24px -12px rgba(28,35,31,0.12);
+    --radius:14px;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:'Noto Serif KR',ui-serif,Georgia,serif;
+    --sans:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',ui-sans-serif,system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12140F;
+      --surface:#1B1E17;
+      --surface-2:#22261E;
+      --border:#333A2F;
+      --text:#EEF0E8;
+      --text-dim:#A7B0A0;
+      --text-faint:#78816F;
+      --accent:#57C4A2;
+      --accent-strong:#7BD9BA;
+      --accent-tint:#1E332C;
+      --amber:#E3A75C;
+      --amber-tint:#3A2B14;
+      --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12140F;
+    --surface:#1B1E17;
+    --surface-2:#22261E;
+    --border:#333A2F;
+    --text:#EEF0E8;
+    --text-dim:#A7B0A0;
+    --text-faint:#78816F;
+    --accent:#57C4A2;
+    --accent-strong:#7BD9BA;
+    --accent-tint:#1E332C;
+    --amber:#E3A75C;
+    --amber-tint:#3A2B14;
+    --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.6;
+  }
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding-inline:20px;
+    padding-block:40px 80px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+  header.page{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .eyebrow{
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:clamp(26px,4vw,34px);
+    margin:0;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .step{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:22px 24px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .step[data-disabled="true"]{
+    opacity:0.45;
+    pointer-events:none;
+  }
+  .step-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .step-num{
+    font-family:var(--mono);
+    font-size:13px;
+    font-weight:600;
+    color:var(--accent);
+    background:var(--accent-tint);
+    border-radius:999px;
+    width:24px;
+    height:24px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+    transform:translateY(1px);
+  }
+  .step-title{
+    font-weight:700;
+    font-size:16.5px;
+  }
+  .step-sub{
+    color:var(--text-faint);
+    font-size:13.5px;
+    margin:-8px 0 0 34px;
+  }
+
+  /* tabs */
+  .tabbar{
+    display:flex;
+    gap:6px;
+    padding:4px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    align-self:flex-start;
+  }
+  .tab-btn{
+    font-family:inherit;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--text-dim);
+    background:none;
+    border:none;
+    border-radius:9px;
+    padding:9px 16px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab-btn:hover{ color:var(--text); }
+  .tab-btn[aria-selected="true"]{
+    background:var(--surface);
+    color:var(--accent-strong);
+    box-shadow:var(--shadow);
+  }
+  .tabpanel[data-disabled="true"]{
+    opacity:0.45;
+    pointer-events:none;
+  }
+
+  /* upload */
+  .dropzone{
+    border:1.5px dashed var(--border);
+    border-radius:10px;
+    padding:26px 20px;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+    background:var(--surface-2);
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--accent);
+    background:var(--accent-tint);
+  }
+  .dropzone svg{ width:28px; height:28px; color:var(--text-faint); }
+  .dropzone .dz-title{ font-weight:600; }
+  .dropzone .dz-sub{ font-size:13px; color:var(--text-faint); }
+  input[type=file]{ display:none; }
+  .filepill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--accent-tint);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13.5px;
+  }
+  .filepill strong{ font-weight:600; }
+  .filepill button{
+    margin-left:auto;
+    background:none;border:none;color:var(--text-dim);
+    font-size:13px;cursor:pointer;text-decoration:underline;
+    font-family:inherit;
+  }
+  .msg{
+    font-size:13.5px;
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  .msg.error{ background:var(--amber-tint); color:var(--amber); }
+  .msg.info{ background:var(--surface-2); color:var(--text-dim); }
+
+  /* field rows */
+  .field-row{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    flex:1 1 180px;
+    min-width:0;
+  }
+  .field label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-dim);
+  }
+  select, .sheet-select, input[type=text], input[type=time]{
+    font-family:inherit;
+    font-size:14px;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    min-width:0;
+  }
+  select:focus, input[type=text]:focus, input[type=time]:focus, .dropzone:focus-visible, button:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  .icon-btn{
+    font-family:inherit;
+    font-size:13px;
+    line-height:1;
+    color:var(--text-faint);
+    background:none;
+    border:1px solid var(--border);
+    border-radius:7px;
+    width:26px;
+    height:26px;
+    cursor:pointer;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .icon-btn:hover{ color:var(--amber); border-color:var(--amber); }
+
+  button.primary{
+    font-family:inherit;
+    font-weight:600;
+    font-size:14.5px;
+    color:#fff;
+    background:var(--accent);
+    border:none;
+    border-radius:9px;
+    padding:11px 20px;
+    cursor:pointer;
+    align-self:flex-start;
+    transition:background .15s ease;
+  }
+  button.primary:hover{ background:var(--accent-strong); }
+  button.ghost{
+    font-family:inherit;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--accent);
+    background:none;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:8px 14px;
+    cursor:pointer;
+  }
+  button.ghost:hover{ border-color:var(--accent); }
+
+  /* results */
+  .summary-bar{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .summary-bar .who{
+    font-weight:700;
+    font-size:17px;
+  }
+  .summary-bar .total{
+    margin-left:auto;
+    font-family:var(--mono);
+    font-size:13.5px;
+    color:var(--text-dim);
+  }
+  .summary-bar .total b{
+    font-size:16px;
+    color:var(--text);
+    font-weight:600;
+  }
+  .tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px; }
+  thead th{
+    text-align:left;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    padding:10px 12px;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.num{ font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.days{ color:var(--text-dim); font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  td.proj{ font-weight:600; }
+  .empty-row td{ color:var(--text-faint); text-align:center; padding:22px; }
+
+  .actions-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .toast{
+    font-size:13px;
+    color:var(--accent);
+    font-weight:600;
+  }
+  textarea.copyarea{
+    width:100%;
+    min-height:120px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px;
+    background:var(--surface-2);
+    color:var(--text);
+  }
+
+  footer.note{
+    font-size:12.5px;
+    color:var(--text-faint);
+    text-align:center;
+    padding-top:8px;
+  }
+
+  @media (max-width:520px){
+    .wrap{ padding-inline:16px; }
+    .step{ padding:18px 16px 20px; }
+    .summary-bar .total{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <span class="eyebrow">Jiransoft · 업무일지 도구</span>
+    <h1>배분율 계산기</h1>
+  </header>
+
+  <div class="tabbar" role="tablist">
+    <button class="tab-btn" id="tabBtnMonthly" type="button" role="tab" aria-selected="true" aria-controls="panelMonthly">월별 배분율 계산기</button>
+    <button class="tab-btn" id="tabBtnDaily" type="button" role="tab" aria-selected="false" aria-controls="panelDaily">일별 배분율 계산기</button>
+  </div>
+
+  <div class="tabpanel" id="panelMonthly" role="tabpanel">
+    <div class="step" id="step1">
+      <div class="step-head"><span class="step-num">1</span><span class="step-title">일일 진행업무 파일 업로드</span></div>
+      <p class="step-sub">사용자별 · 프로젝트별 · 일자별 수행 시간이 담긴 xlsx 파일을 올려주세요.</p>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="파일 선택">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        <div class="dz-title">클릭하거나 파일을 끌어다 놓으세요</div>
+        <div class="dz-sub">.xlsx 파일 1개</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+      </div>
+      <div id="fileInfo"></div>
+      <div id="uploadMsg"></div>
+    </div>
+
+    <div class="step" id="monthlyCard" data-disabled="true">
+      <div class="step-head"><span class="step-num">2</span><span class="step-title">사용자 · 월 선택</span></div>
+      <div class="field-row">
+        <div class="field">
+          <label for="userSelect">사용자명</label>
+          <select id="userSelect"></select>
+        </div>
+        <div class="field">
+          <label for="monthSelect">월</label>
+          <select id="monthSelect"></select>
+        </div>
+      </div>
+      <button class="primary" id="generateBtn">업무 배분율 만들기</button>
+
+      <div class="summary-bar" id="resultSummary"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>담당자</th><th>월</th><th>프로젝트</th><th>업무일</th><th>수행일수</th></tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+      <div class="actions-row">
+        <button class="ghost" id="copyBtn">표 복사하기</button>
+        <span class="toast" id="copyToast"></span>
+      </div>
+      <textarea class="copyarea" id="copyArea" style="display:none" readonly></textarea>
+    </div>
+  </div>
+
+  <div class="tabpanel" id="panelDaily" role="tabpanel" hidden>
+    <div class="step" id="dailyEntryCard">
+      <div class="step-head"><span class="step-title">오늘 작업 입력</span></div>
+      <p class="step-sub">프로젝트와 시작·종료 시간을 입력하면 소요 시간과 환산 일수(8시간 = 1일 기준)를 계산해 드려요.</p>
+      <div class="field-row">
+        <div class="field" style="flex:2 1 220px;">
+          <label for="entryProject">프로젝트</label>
+          <input type="text" id="entryProject" list="entryProjectList" placeholder="예: 오피스키퍼 3.0">
+          <datalist id="entryProjectList"></datalist>
+        </div>
+        <div class="field">
+          <label for="entryStart">시작 시간</label>
+          <input type="time" id="entryStart">
+        </div>
+        <div class="field">
+          <label for="entryEnd">종료 시간</label>
+          <input type="time" id="entryEnd">
+        </div>
+      </div>
+      <button class="primary" id="addEntryBtn">추가하기</button>
+      <div id="entryMsg"></div>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>프로젝트</th><th>시작</th><th>종료</th><th>소요 시간</th><th>환산 일수</th><th></th></tr>
+          </thead>
+          <tbody id="entryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step" id="dailySummaryCard">
+      <div class="step-head"><span class="step-title">프로젝트별 합계</span></div>
+      <div class="summary-bar" id="dailyResultSummary"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>프로젝트</th><th>총 소요 시간</th><th>환산 일수</th></tr>
+          </thead>
+          <tbody id="dailyResultBody"></tbody>
+        </table>
+      </div>
+      <div class="actions-row">
+        <button class="ghost" id="dailyCopyBtn">표 복사하기</button>
+        <span class="toast" id="dailyCopyToast"></span>
+      </div>
+      <textarea class="copyarea" id="dailyCopyArea" style="display:none" readonly></textarea>
+    </div>
+  </div>
+
+  <footer class="note">Jiransoft 내부 업무일지 서식 기준</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- constants ----------
+  var DEFAULT_EXCLUDE_HINTS = ["휴가","반차","공통업무","개인업무","기타업무"];
+
+  // ---------- state ----------
+  var state = {
+    workbook:null,
+    rows:null,
+    nameColIdx:1,
+    monthSegs:[],     // [{month:1, dayCols:[{col,day}]}]
+    blocks:[],        // [{name, mode:'single'|'double', persons:{name:hoursRow}}]
+    excluded:new Set(),
+    fileName:""
+  };
+
+  // ---------- helpers ----------
+  function norm(v){
+    if (v===null || v===undefined) return null;
+    var s = String(v).trim();
+    return s.length ? s : null;
+  }
+  function normalizeProject(name){
+    return name.replace(/[\s]*[\(（](?:windows|mac|win|macos|모바일|android|ios)[\)）]\s*$/i,"").trim();
+  }
+  function isExcludedByDefault(name){
+    for (var i=0;i<DEFAULT_EXCLUDE_HINTS.length;i++){
+      if (name.indexOf(DEFAULT_EXCLUDE_HINTS[i]) !== -1) return true;
+    }
+    return false;
+  }
+  function round3(n){ return Math.round(n*1000)/1000; }
+  function fmtNum(n){
+    var r = round3(n);
+    return (Math.abs(r - Math.round(r)) < 1e-9) ? String(Math.round(r)) : String(r);
+  }
+  function el(tag, attrs, children){
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs){
+      if (k==="text") e.textContent = attrs[k];
+      else if (k==="html") e.innerHTML = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children||[]).forEach(function(c){ e.appendChild(c); });
+    return e;
+  }
+
+  // ---------- parsing ----------
+  function findHeader(rows){
+    var limit = Math.min(rows.length, 10);
+    for (var r=0; r<limit; r++){
+      var row = rows[r] || [];
+      for (var c=0; c<row.length; c++){
+        if (norm(row[c]) === "이름") return {row:r, col:c};
+      }
+    }
+    return null;
+  }
+
+  function parseMonthSegs(rows, header){
+    var monthRow = rows[header.row] || [];
+    var dayRow = rows[header.row+1] || [];
+    var starts = [];
+    for (var c=header.col+1; c<monthRow.length; c++){
+      var v = norm(monthRow[c]);
+      if (v && /^\d{1,2}\s*월$/.test(v)){
+        starts.push({month: parseInt(v,10), col:c});
+      }
+    }
+    var segs = [];
+    starts.forEach(function(s, i){
+      var endCol;
+      if (i+1 < starts.length) endCol = starts[i+1].col - 1;
+      else {
+        endCol = s.col;
+        for (var c=s.col; c<dayRow.length; c++){
+          var v = norm(dayRow[c]);
+          if (v && /^\d{1,2}\s*일$/.test(v)) endCol = c; else break;
+        }
+      }
+      var dayCols = [];
+      for (var c2=s.col; c2<=endCol; c2++){
+        var dv = norm(dayRow[c2]);
+        if (dv && /^\d{1,2}\s*일$/.test(dv)){
+          dayCols.push({col:c2, day: parseInt(dv,10)});
+        }
+      }
+      if (dayCols.length) segs.push({month:s.month, dayCols:dayCols});
+    });
+    return segs;
+  }
+
+  function parseBlocks(rows, header){
+    var lastRow = rows.length - 1;
+    var nameCol = header.col;
+    var blocks = [];
+    var r = header.row + 2;
+    while (r <= lastRow){
+      var rowA = norm((rows[r]||[])[0]);
+      if (rowA){
+        var nextB = norm((rows[r+1]||[])[nameCol]);
+        var mode = nextB ? "single" : "double";
+        var block = {name: rowA, mode: mode, persons:{}};
+        var rr = r;
+        while (rr <= lastRow){
+          var a2 = norm((rows[rr]||[])[0]);
+          var b2 = norm((rows[rr]||[])[nameCol]);
+          if (rr !== r && a2){ break; }
+          if (b2 === "합계"){ rr++; break; }
+          if (b2){
+            var hoursRow = mode === "double" ? rr+1 : rr;
+            block.persons[b2] = hoursRow;
+            rr += mode === "double" ? 2 : 1;
+          } else {
+            rr++;
+          }
+        }
+        blocks.push(block);
+        r = rr;
+      } else {
+        r++;
+      }
+    }
+    return blocks;
+  }
+
+  var USER_ORDER = ["정교수","김해성","신주영","권서연","원교현","최선빈"];
+
+  function pickBestSheet(workbook){
+    var candidates = [];
+    workbook.SheetNames.forEach(function(name){
+      var ws = workbook.Sheets[name];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+      var header = findHeader(rows);
+      if (header) candidates.push({name:name, rows:rows, header:header});
+    });
+    if (!candidates.length) return null;
+    var preferred = candidates.find(function(c){ return /일일|진행업무/.test(c.name); });
+    return preferred || candidates[0];
+  }
+
+  // ---------- UI wiring ----------
+  var dropzone = document.getElementById("dropzone");
+  var fileInput = document.getElementById("fileInput");
+  var fileInfo = document.getElementById("fileInfo");
+  var uploadMsg = document.getElementById("uploadMsg");
+  var panelMonthly = document.getElementById("panelMonthly");
+  var panelDaily = document.getElementById("panelDaily");
+  var monthlyCard = document.getElementById("monthlyCard");
+  var userSelect = document.getElementById("userSelect");
+  var monthSelect = document.getElementById("monthSelect");
+  var generateBtn = document.getElementById("generateBtn");
+  var resultSummary = document.getElementById("resultSummary");
+  var resultBody = document.getElementById("resultBody");
+  var copyBtn = document.getElementById("copyBtn");
+  var copyToast = document.getElementById("copyToast");
+  var copyArea = document.getElementById("copyArea");
+
+  var tabBtnMonthly = document.getElementById("tabBtnMonthly");
+  var tabBtnDaily = document.getElementById("tabBtnDaily");
+
+  var entryProject = document.getElementById("entryProject");
+  var entryProjectList = document.getElementById("entryProjectList");
+  var entryStart = document.getElementById("entryStart");
+  var entryEnd = document.getElementById("entryEnd");
+  var addEntryBtn = document.getElementById("addEntryBtn");
+  var entryMsg = document.getElementById("entryMsg");
+  var entryBody = document.getElementById("entryBody");
+  var dailyResultSummary = document.getElementById("dailyResultSummary");
+  var dailyResultBody = document.getElementById("dailyResultBody");
+  var dailyCopyBtn = document.getElementById("dailyCopyBtn");
+  var dailyCopyToast = document.getElementById("dailyCopyToast");
+  var dailyCopyArea = document.getElementById("dailyCopyArea");
+
+  function selectTab(name){
+    var monthlyActive = name === "monthly";
+    tabBtnMonthly.setAttribute("aria-selected", String(monthlyActive));
+    tabBtnDaily.setAttribute("aria-selected", String(!monthlyActive));
+    panelMonthly.hidden = !monthlyActive;
+    panelDaily.hidden = monthlyActive;
+  }
+  tabBtnMonthly.addEventListener("click", function(){ selectTab("monthly"); });
+  tabBtnDaily.addEventListener("click", function(){ selectTab("daily"); });
+
+  dropzone.addEventListener("click", function(){ fileInput.click(); });
+  dropzone.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fileInput.click(); }
+  });
+  ["dragenter","dragover"].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.add("drag"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.remove("drag"); });
+  });
+  dropzone.addEventListener("drop", function(e){
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  fileInput.addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0];
+    if (f) handleFile(f);
+  });
+
+  function setMsg(container, text, type){
+    container.innerHTML = "";
+    if (!text) return;
+    container.appendChild(el("div", {class:"msg " + (type||"info"), text:text}));
+  }
+
+  function handleFile(file){
+    setMsg(uploadMsg, "", "info");
+    fileInfo.innerHTML = "";
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var data = new Uint8Array(e.target.result);
+        var workbook = XLSX.read(data, {type:"array", cellDates:false});
+        var best = pickBestSheet(workbook);
+        if (!best){
+          setMsg(uploadMsg, "파일에서 '이름' 헤더가 있는 표를 찾지 못했어요. '일일 진행업무' 형식의 파일인지 확인해주세요.", "error");
+          return;
+        }
+        var monthSegs = parseMonthSegs(best.rows, best.header);
+        var blocks = parseBlocks(best.rows, best.header);
+        var doubleBlocks = blocks.filter(function(b){ return b.mode === "double"; });
+        if (!monthSegs.length || !doubleBlocks.length){
+          setMsg(uploadMsg, "월별 일자 데이터나 프로젝트 항목을 인식하지 못했어요. 파일 형식을 확인해주세요.", "error");
+          return;
+        }
+
+        state.rows = best.rows;
+        state.nameColIdx = best.header.col;
+        state.monthSegs = monthSegs;
+        state.blocks = doubleBlocks;
+        state.fileName = file.name;
+        state.excluded = new Set();
+        doubleBlocks.forEach(function(b){ if (isExcludedByDefault(b.name)) state.excluded.add(b.name); });
+
+        fileInfo.appendChild(el("div", {class:"filepill"}, [
+          el("span", {html:"📄"}),
+          el("strong", {text:file.name}),
+          (function(){ var b = el("button", {type:"button", text:"다른 파일 선택"}); b.addEventListener("click", function(){ fileInput.value=""; fileInfo.innerHTML=""; }); return b; })()
+        ]));
+        buildSelectors();
+        monthlyCard.setAttribute("data-disabled","false");
+        resultBody.innerHTML = "";
+        resultSummary.innerHTML = "";
+      } catch(err){
+        setMsg(uploadMsg, "파일을 읽는 중 문제가 발생했어요: " + err.message, "error");
+      }
+    };
+    reader.onerror = function(){
+      setMsg(uploadMsg, "파일을 읽지 못했어요. 다시 시도해주세요.", "error");
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function buildSelectors(){
+    var present = {};
+    state.blocks.forEach(function(b){
+      if (b.mode !== "double") return;
+      Object.keys(b.persons).forEach(function(p){ present[p] = true; });
+    });
+    var userNames = USER_ORDER.filter(function(p){ return present[p]; });
+
+    userSelect.innerHTML = "";
+    userNames.forEach(function(p){ userSelect.appendChild(el("option", {value:p, text:p})); });
+
+    monthSelect.innerHTML = "";
+    state.monthSegs.forEach(function(seg){
+      monthSelect.appendChild(el("option", {value:String(seg.month), text: seg.month + "월"}));
+    });
+  }
+
+  // Parses a daily note like "기능추가 (09) 2차+재확인3차" into its ticket ("기능추가 (09)"),
+  // round number ("2"), and whether it's a 재확인(reconfirmation) pass on that round.
+  // Notes that don't contain a "N차" marker fall back to the raw text as their own group.
+  function extractGroup(note){
+    if (!note) return {key:"", ticket:"", round:null, reconfirm:false};
+    var s = String(note).replace(/[\r\n]+/g," ").replace(/\s+/g," ").trim();
+    if (!s) return {key:"", ticket:"", round:null, reconfirm:false};
+    var m = s.match(/^(.*?)(\d+)\s*차/);
+    if (!m){
+      return {key:"free:"+s, ticket:s, round:null, reconfirm:false};
+    }
+    var ticket = m[1].trim();
+    var round = m[2];
+    var reconfirm = /재확인/.test(s);
+    return {key: ticket + "" + round, ticket:ticket, round:round, reconfirm:reconfirm};
+  }
+
+  function groupLabel(g){
+    if (g.round !== null){
+      return (g.ticket ? g.ticket + " " : "") + g.round + "차" + (g.reconfirm ? "+재확인" : "");
+    }
+    return g.ticket || "";
+  }
+
+  function computeResults(user, month){
+    var seg = state.monthSegs.find(function(s){ return s.month === month; });
+    if (!seg) return {rows:[], total:0};
+    var projectMap = {};  // normalized project -> {order:[], groups:{groupKey:{ticket,round,reconfirm,days:Set,hours}}, totalHours}
+    var projectOrder = [];
+    var total = 0;
+    state.blocks.forEach(function(b){
+      if (state.excluded.has(b.name)) return;
+      var hoursRow = b.persons[user];
+      if (hoursRow === undefined) return;
+      var labelRow = hoursRow - 1;
+      var hoursData = state.rows[hoursRow] || [];
+      var labelData = state.rows[labelRow] || [];
+      var projKey = normalizeProject(b.name.replace(/[\r\n]+/g," "));
+      seg.dayCols.forEach(function(dc){
+        var v = hoursData[dc.col];
+        if (typeof v !== "number" || v <= 0) return;
+        var g = extractGroup(labelData[dc.col]);
+        if (!projectMap[projKey]){ projectMap[projKey] = {groups:{}, order:[], totalHours:0}; projectOrder.push(projKey); }
+        var pm = projectMap[projKey];
+        if (!pm.groups[g.key]){ pm.groups[g.key] = {ticket:g.ticket, round:g.round, reconfirm:false, days:new Set(), hours:0, minDay:dc.day}; pm.order.push(g.key); }
+        var grp = pm.groups[g.key];
+        if (g.reconfirm) grp.reconfirm = true;
+        grp.days.add(dc.day);
+        grp.hours += v;
+        grp.minDay = Math.min(grp.minDay, dc.day);
+        pm.totalHours += v;
+        total += v;
+      });
+    });
+    projectOrder.sort(function(a,b){ return projectMap[b].totalHours - projectMap[a].totalHours; });
+    var rows = [];
+    projectOrder.forEach(function(projKey){
+      var pm = projectMap[projKey];
+      var groupKeys = pm.order.slice().sort(function(a,b){ return pm.groups[a].minDay - pm.groups[b].minDay; });
+      groupKeys.forEach(function(gk){
+        var grp = pm.groups[gk];
+        var label = groupLabel(grp);
+        var d = Array.from(grp.days).sort(function(a,b){return a-b;});
+        rows.push({
+          project: label ? (projKey + " " + label) : projKey,
+          days: d,
+          hours: round3(grp.hours)
+        });
+      });
+    });
+    return {rows: rows, total: round3(total)};
+  }
+
+  generateBtn.addEventListener("click", function(){
+    var user = userSelect.value;
+    var month = parseInt(monthSelect.value,10);
+    var result = computeResults(user, month);
+
+    resultSummary.innerHTML = "";
+    resultSummary.appendChild(el("span", {class:"who", text: user + " · " + month + "월"}));
+    resultSummary.appendChild(el("span", {class:"total", html:"총 수행일 <b>" + fmtNum(result.total) + "</b>일"}));
+
+    resultBody.innerHTML = "";
+    if (!result.rows.length){
+      resultBody.appendChild(el("tr", {class:"empty-row"}, [ el("td", {colspan:"5", text:"해당 사용자·월에 집계된 프로젝트 업무가 없어요."}) ]));
+    } else {
+      result.rows.forEach(function(r){
+        var tr = el("tr", {}, [
+          el("td", {text:user}),
+          el("td", {text: month + "월"}),
+          el("td", {class:"proj", text:r.project}),
+          el("td", {class:"days", text: r.days.join(", ")}),
+          el("td", {class:"num", text: fmtNum(r.hours)})
+        ]);
+        resultBody.appendChild(tr);
+      });
+    }
+    copyToast.textContent = "";
+    copyArea.style.display = "none";
+  });
+
+  function wireCopyButton(btn, tableBody, toastEl, areaEl, headerLine){
+    btn.addEventListener("click", function(){
+      var rows = Array.from(tableBody.querySelectorAll("tr")).filter(function(tr){ return !tr.classList.contains("empty-row"); });
+      if (!rows.length) return;
+      var lines = [headerLine];
+      rows.forEach(function(tr){
+        var vals = Array.from(tr.children).map(function(td){ return td.textContent; });
+        lines.push(vals.join("\t"));
+      });
+      var tsv = lines.join("\n");
+      var done = function(){ toastEl.textContent = "복사되었습니다. 엑셀에 붙여넣기 하세요."; };
+      var fail = function(){
+        areaEl.style.display = "block";
+        areaEl.value = tsv;
+        areaEl.focus();
+        areaEl.select();
+        toastEl.textContent = "자동 복사가 막혀 있어요. 아래 칸에서 직접 복사해주세요.";
+      };
+      try{
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(tsv).then(done).catch(fail);
+        } else { fail(); }
+      } catch(e){ fail(); }
+    });
+  }
+
+  wireCopyButton(copyBtn, resultBody, copyToast, copyArea, "담당자\t월\t프로젝트\t업무일\t수행일수");
+  wireCopyButton(dailyCopyBtn, dailyResultBody, dailyCopyToast, dailyCopyArea, "프로젝트\t총 소요 시간\t환산 일수");
+
+  // ---------- daily manual entry calculator ----------
+  var dailyEntries = []; // [{id, project, start, end, minutes}]
+  var dailyEntrySeq = 1;
+
+  function parseTimeToMinutes(str){
+    if (!str) return null;
+    var m = /^(\d{1,2}):(\d{2})$/.exec(str);
+    if (!m) return null;
+    var h = parseInt(m[1],10), mm = parseInt(m[2],10);
+    if (isNaN(h) || isNaN(mm)) return null;
+    return h*60 + mm;
+  }
+  function fmtDuration(minutes){
+    var h = Math.floor(minutes/60), m = minutes % 60;
+    if (h && m) return h + "시간 " + m + "분";
+    if (h) return h + "시간";
+    return m + "분";
+  }
+  function round4(n){ return Math.round(n*10000)/10000; }
+  function fmtDay(n){
+    var r = round4(n);
+    return (Math.abs(r - Math.round(r)) < 1e-9) ? String(Math.round(r)) : String(r);
+  }
+
+  function renderEntries(){
+    entryBody.innerHTML = "";
+    if (!dailyEntries.length){
+      entryBody.appendChild(el("tr", {class:"empty-row"}, [ el("td", {colspan:"6", text:"아직 입력한 작업이 없어요."}) ]));
+    } else {
+      dailyEntries.forEach(function(en){
+        var delBtn = el("button", {type:"button", class:"icon-btn", "aria-label":"삭제", text:"✕"});
+        delBtn.addEventListener("click", function(){
+          dailyEntries = dailyEntries.filter(function(x){ return x.id !== en.id; });
+          renderEntries();
+          renderSummary();
+        });
+        var tr = el("tr", {}, [
+          el("td", {class:"proj", text:en.project}),
+          el("td", {class:"num", text:en.start}),
+          el("td", {class:"num", text:en.end}),
+          el("td", {class:"num", text: fmtDuration(en.minutes)}),
+          el("td", {class:"num", text: fmtDay(en.minutes/480)}),
+          el("td", {}, [delBtn])
+        ]);
+        entryBody.appendChild(tr);
+      });
+    }
+
+    var projects = [];
+    var seen = {};
+    dailyEntries.forEach(function(en){ if (!seen[en.project]){ seen[en.project]=true; projects.push(en.project); } });
+    entryProjectList.innerHTML = "";
+    projects.forEach(function(p){ entryProjectList.appendChild(el("option", {value:p})); });
+  }
+
+  function renderSummary(){
+    var map = {}, order = [], totalMinutes = 0;
+    dailyEntries.forEach(function(en){
+      if (!map[en.project]){ map[en.project] = 0; order.push(en.project); }
+      map[en.project] += en.minutes;
+      totalMinutes += en.minutes;
+    });
+    order.sort(function(a,b){ return map[b]-map[a]; });
+
+    dailyResultSummary.innerHTML = "";
+    dailyResultSummary.appendChild(el("span", {class:"who", text:"오늘 작업 합계"}));
+    dailyResultSummary.appendChild(el("span", {class:"total", html:"총 환산 일수 <b>" + fmtDay(totalMinutes/480) + "</b>일"}));
+
+    dailyResultBody.innerHTML = "";
+    if (!order.length){
+      dailyResultBody.appendChild(el("tr", {class:"empty-row"}, [ el("td", {colspan:"3", text:"입력한 작업이 없어요."}) ]));
+    } else {
+      order.forEach(function(p){
+        var tr = el("tr", {}, [
+          el("td", {class:"proj", text:p}),
+          el("td", {class:"num", text: fmtDuration(map[p])}),
+          el("td", {class:"num", text: fmtDay(map[p]/480)})
+        ]);
+        dailyResultBody.appendChild(tr);
+      });
+    }
+    dailyCopyToast.textContent = "";
+    dailyCopyArea.style.display = "none";
+  }
+
+  addEntryBtn.addEventListener("click", function(){
+    var project = (entryProject.value || "").trim();
+    var start = entryStart.value;
+    var end = entryEnd.value;
+
+    if (!project){ setMsg(entryMsg, "프로젝트를 입력해주세요.", "error"); return; }
+    if (!start || !end){ setMsg(entryMsg, "시작 시간과 종료 시간을 모두 입력해주세요.", "error"); return; }
+    var startMin = parseTimeToMinutes(start);
+    var endMin = parseTimeToMinutes(end);
+    if (startMin === null || endMin === null || endMin <= startMin){
+      setMsg(entryMsg, "종료 시간은 시작 시간보다 늦어야 해요.", "error");
+      return;
+    }
+    setMsg(entryMsg, "", "info");
+
+    dailyEntries.push({
+      id: dailyEntrySeq++,
+      project: project,
+      start: start,
+      end: end,
+      minutes: endMin - startMin
+    });
+    entryProject.value = "";
+    entryStart.value = "";
+    entryEnd.value = "";
+    entryProject.focus();
+    renderEntries();
+    renderSummary();
+  });
+
+  renderEntries();
+  renderSummary();
+
+})();
+</script>
+</body>
+</html>
