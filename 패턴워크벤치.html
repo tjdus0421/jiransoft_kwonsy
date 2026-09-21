@@ -123,37 +123,11 @@
     font-size:12px;font-weight:700;
     font-family:'IBM Plex Mono',monospace;
   }
-  .tabbar{
-    display:flex;
-    gap:6px;
-    border-bottom:1px solid var(--border);
-  }
-  .tab-btn{
-    appearance:none;
-    border:none;
-    background:transparent;
-    color:var(--text-muted);
-    font-family:inherit;
-    font-size:14px;
-    font-weight:600;
-    padding:10px 4px;
-    margin-bottom:-1px;
-    border-bottom:2px solid transparent;
-    cursor:pointer;
-    transition:color .12s, border-color .12s;
-  }
-  .tab-btn + .tab-btn{ margin-left:14px; }
-  .tab-btn:hover{ color:var(--text); }
-  .tab-btn.active{
-    color:var(--accent);
-    border-bottom-color:var(--accent);
-  }
-  .tab-panel{
+  .panel-stack{
     display:flex;
     flex-direction:column;
     gap:22px;
   }
-  .tab-panel[hidden]{ display:none; }
   section.panel{
     background:var(--surface);
     border:1px solid var(--border);
@@ -378,7 +352,7 @@
     text-transform:uppercase;
     letter-spacing:.03em;
   }
-  textarea#bodyText, textarea#bodyText2{
+  textarea#bodyText{
     min-height:220px;
     resize:vertical;
     line-height:1.7;
@@ -481,12 +455,7 @@
     <span class="eyebrow">품질관리팀 · DLP 탐지 검증 도구</span>
   </header>
 
-  <div class="tabbar" role="tablist">
-    <button type="button" class="tab-btn active" id="tabBtnPattern" data-tab="pattern" role="tab" aria-selected="true">패턴별 세부항목 설정</button>
-    <button type="button" class="tab-btn" id="tabBtnFilename" data-tab="filename" role="tab" aria-selected="false">파일명 설정</button>
-  </div>
-
-  <div class="tab-panel" id="tabPanelPattern" role="tabpanel">
+  <div class="panel-stack">
 
   <!-- STEP 1: PATTERN GENERATOR -->
   <section class="panel">
@@ -604,72 +573,6 @@
       </div>
 
       <div class="status-line" id="statusLine"></div>
-    </div>
-  </section>
-
-  </div>
-
-  <div class="tab-panel" id="tabPanelFilename" role="tabpanel" hidden>
-
-  <!-- FILENAME SETTINGS -->
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>파일명 설정</h2>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div>
-        <span class="field-label">파일 이름 (확장자 제외)</span>
-        <input type="text" id="fileNameBase" value="test_file">
-      </div>
-    </div>
-  </section>
-
-  <!-- FILENAME TAB: BODY EDITOR (mirrors Step 2) -->
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>문서 본문 구성</h2>
-      </div>
-    </div>
-    <div class="panel-body">
-      <textarea id="bodyText2" spellcheck="false"></textarea>
-      <div class="body-toolbar">
-        <span class="counter" id="charCounter2">0자 · 0줄</span>
-        <button class="btn ghost sm" id="clearBodyBtn2" type="button">본문 지우기</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- FILENAME TAB: EXPORT -->
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>파일 생성</h2>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div>
-        <span class="field-label" style="margin-bottom:6px;">중요 기능</span>
-        <div class="export-grid" id="exportGridMain2"></div>
-      </div>
-
-      <div>
-        <span class="field-label" style="margin-bottom:6px;">이미지 기능</span>
-        <div class="export-grid" id="exportGridImage2"></div>
-      </div>
-
-      <div>
-        <span class="field-label" style="margin-bottom:6px;">여러 형식 함께 ZIP으로 다운로드</span>
-        <span class="field-label" style="margin-bottom:2px; font-weight:normal; opacity:.75;">중요 기능</span>
-        <div class="checkgrid" id="multiFormatChecksMain2"></div>
-        <span class="field-label" style="margin-bottom:2px; margin-top:10px; font-weight:normal; opacity:.75;">이미지 기능</span>
-        <div class="checkgrid" id="multiFormatChecksImage2"></div>
-        <button class="btn sm" id="downloadMultiBtn2" type="button" style="margin-top:10px;">선택한 형식 ZIP으로 다운로드</button>
-      </div>
-
-      <div class="status-line" id="statusLine2"></div>
     </div>
   </section>
 
@@ -22336,14 +22239,11 @@ var src_default = GIFEncoder;
   // Step 2: body editor
   // ---------------------------------------------------------------------
   const bodyText = document.getElementById('bodyText');
-  const bodyText2 = document.getElementById('bodyText2');
   const charCounter = document.getElementById('charCounter');
-  const charCounter2 = document.getElementById('charCounter2');
-  const bodyTextAreas = [bodyText, bodyText2].filter(Boolean);
-  const charCounters = [charCounter, charCounter2].filter(Boolean);
+  const bodyTextAreas = [bodyText].filter(Boolean);
+  const charCounters = [charCounter].filter(Boolean);
 
   bodyText.value = '';
-  bodyText2.value = '';
 
   function setBodyValue(value){
     bodyTextAreas.forEach(el => { el.value = value; });
@@ -22371,7 +22271,7 @@ var src_default = GIFEncoder;
   });
   updateCounter();
 
-  ['clearBodyBtn', 'clearBodyBtn2'].forEach(id => {
+  ['clearBodyBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', () => setBodyValue(''));
   });
@@ -22481,13 +22381,11 @@ var src_default = GIFEncoder;
     return { status:'zipped', name: zipName, inner: filename };
   }
 
-  // "source" is 'pattern' (패턴별 세부항목 설정 탭) or 'filename' (파일명 설정 탭).
-  // Each tab has its own 파일/폴더명 input and its own auto-increment state —
-  // they never read from or write into each other's field.
-  const FILE_BASE_INPUT_IDS = { pattern: 'fileNameBasePattern', filename: 'fileNameBase' };
+  // "source" is always 'pattern' (패턴별 세부항목 설정) — the only export source.
+  const FILE_BASE_INPUT_IDS = { pattern: 'fileNameBasePattern' };
 
   function getFileBase(source){
-    const id = FILE_BASE_INPUT_IDS[source] || FILE_BASE_INPUT_IDS.filename;
+    const id = FILE_BASE_INPUT_IDS[source] || FILE_BASE_INPUT_IDS.pattern;
     const v = document.getElementById(id).value.trim();
     return v || 'test_file';
   }
@@ -22502,10 +22400,10 @@ var src_default = GIFEncoder;
   // folder counter has no visible field, so it's just a plain running
   // counter, kept separately per tab so the two never interfere.
   // ---------------------------------------------------------------------
-  const folderCounters = { pattern: 0, filename: 0 };
+  const folderCounters = { pattern: 0 };
 
   function advanceFileNameIfUnedited(source){
-    const id = FILE_BASE_INPUT_IDS[source] || FILE_BASE_INPUT_IDS.filename;
+    const id = FILE_BASE_INPUT_IDS[source] || FILE_BASE_INPUT_IDS.pattern;
     const input = document.getElementById(id);
     const m = /^test_file(\d*)$/.exec(input.value.trim());
     if (m){
@@ -22718,8 +22616,6 @@ var src_default = GIFEncoder;
   }
   mountExportGrid('exportGridMain', 'pattern', MAIN_FORMATS);
   mountExportGrid('exportGridImage', 'pattern', IMAGE_FORMATS);
-  mountExportGrid('exportGridMain2', 'filename', MAIN_FORMATS);
-  mountExportGrid('exportGridImage2', 'filename', IMAGE_FORMATS);
 
   async function genBlobForExt(ext, text, base){
     switch(ext){
@@ -22772,10 +22668,10 @@ var src_default = GIFEncoder;
   // Multiple formats bundled into a single ZIP
   // ---------------------------------------------------------------------
   const MULTI_GROUPS = [
-    { formats: MAIN_FORMATS, containers: ['multiFormatChecksMain', 'multiFormatChecksMain2'] },
-    { formats: IMAGE_FORMATS, containers: ['multiFormatChecksImage', 'multiFormatChecksImage2'] },
+    { formats: MAIN_FORMATS, containers: ['multiFormatChecksMain'] },
+    { formats: IMAGE_FORMATS, containers: ['multiFormatChecksImage'] },
   ];
-  const multiFormatInputs = {}; // ext -> [input, input2]
+  const multiFormatInputs = {}; // ext -> [input]
 
   function mountMultiFormatChecks(){
     MULTI_GROUPS.forEach(group => {
@@ -22854,32 +22750,9 @@ var src_default = GIFEncoder;
     }
   }
 
-  [['downloadMultiBtn', 'pattern'], ['downloadMultiBtn2', 'filename']].forEach(([id, source]) => {
+  [['downloadMultiBtn', 'pattern']].forEach(([id, source]) => {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', () => handleMultiExport(source));
-  });
-
-  // ---------------------------------------------------------------------
-  // Tabs
-  // ---------------------------------------------------------------------
-  const TAB_PANELS = {
-    pattern: document.getElementById('tabPanelPattern'),
-    filename: document.getElementById('tabPanelFilename'),
-  };
-  const TAB_BUTTONS = {
-    pattern: document.getElementById('tabBtnPattern'),
-    filename: document.getElementById('tabBtnFilename'),
-  };
-  function activateTab(name){
-    Object.keys(TAB_PANELS).forEach(key => {
-      const isActive = key === name;
-      TAB_PANELS[key].hidden = !isActive;
-      TAB_BUTTONS[key].classList.toggle('active', isActive);
-      TAB_BUTTONS[key].setAttribute('aria-selected', String(isActive));
-    });
-  }
-  Object.keys(TAB_BUTTONS).forEach(key => {
-    TAB_BUTTONS[key].addEventListener('click', () => activateTab(key));
   });
 
   // initial render
