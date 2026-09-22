@@ -248,6 +248,26 @@
     color:var(--text);
     min-width:0;
   }
+  .time-group{
+    display:flex;
+    gap:6px;
+  }
+  .time-group select{ flex:1 1 0; }
+  .time-group select.ampm{ flex:1.5 1 0; }
+  .time-group select{ padding-inline:8px; }
+  .time-group[hidden]{ display:none; }
+  .time-manual{ width:100%; }
+  .mode-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .mode-hint{
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
   select:focus, input[type=text]:focus, input[type=time]:focus, .dropzone:focus-visible, button:focus-visible{
     outline:2px solid var(--accent);
     outline-offset:2px;
@@ -293,6 +313,7 @@
     cursor:pointer;
   }
   button.ghost:hover{ border-color:var(--accent); }
+  button.ghost.small{ padding:6px 12px; font-size:12.5px; }
 
   /* results */
   .summary-bar{
@@ -434,21 +455,35 @@
   <div class="tabpanel" id="panelDaily" role="tabpanel" hidden>
     <div class="step" id="dailyEntryCard">
       <div class="step-head"><span class="step-title">오늘 작업 입력</span></div>
-      <p class="step-sub">프로젝트와 시작·종료 시간을 입력하면 소요 시간과 환산 일수(8시간 = 1일 기준)를 계산해 드려요.</p>
+      <p class="step-sub">프로젝트를 선택하고 시작·종료 시간을 입력하면 소요 시간과 환산 일수(8시간 = 1일 기준)를 계산해 드려요. 휴게시간 12:00~13:00과 겹치는 시간은 자동으로 제외되고, 소요 시간은 10분 단위로 반올림됩니다.</p>
       <div class="field-row">
         <div class="field" style="flex:2 1 220px;">
           <label for="entryProject">프로젝트</label>
-          <input type="text" id="entryProject" list="entryProjectList" placeholder="예: 오피스키퍼 3.0">
-          <datalist id="entryProjectList"></datalist>
+          <select id="entryProject"></select>
+          <input type="text" id="entryProjectCustom" placeholder="프로젝트명을 직접 입력" style="display:none; margin-top:8px;">
         </div>
-        <div class="field">
-          <label for="entryStart">시작 시간</label>
-          <input type="time" id="entryStart">
+        <div class="field" style="flex:1.6 1 240px;">
+          <label for="startHour">시작 시간</label>
+          <div class="time-group" data-mode="select">
+            <select id="startAmpm" class="ampm" aria-label="시작 오전/오후"></select>
+            <select id="startHour" aria-label="시작 시"></select>
+            <select id="startMinute" aria-label="시작 분"></select>
+          </div>
+          <input type="time" id="entryStart" class="time-manual" aria-label="시작 시간 직접 입력">
         </div>
-        <div class="field">
-          <label for="entryEnd">종료 시간</label>
-          <input type="time" id="entryEnd">
+        <div class="field" style="flex:1.6 1 240px;">
+          <label for="endHour">종료 시간</label>
+          <div class="time-group" data-mode="select">
+            <select id="endAmpm" class="ampm" aria-label="종료 오전/오후"></select>
+            <select id="endHour" aria-label="종료 시"></select>
+            <select id="endMinute" aria-label="종료 분"></select>
+          </div>
+          <input type="time" id="entryEnd" class="time-manual" aria-label="종료 시간 직접 입력">
         </div>
+      </div>
+      <div class="mode-row">
+        <button type="button" class="ghost small" id="timeModeBtn">직접 입력으로 바꾸기</button>
+        <span class="mode-hint" id="timeModeHint">오전/오후 · 시 · 분을 골라 입력하는 중</span>
       </div>
       <button class="primary" id="addEntryBtn">추가하기</button>
       <div id="entryMsg"></div>
@@ -649,7 +684,9 @@
   var tabBtnDaily = document.getElementById("tabBtnDaily");
 
   var entryProject = document.getElementById("entryProject");
-  var entryProjectList = document.getElementById("entryProjectList");
+  var entryProjectCustom = document.getElementById("entryProjectCustom");
+  var timeModeBtn = document.getElementById("timeModeBtn");
+  var timeModeHint = document.getElementById("timeModeHint");
   var entryStart = document.getElementById("entryStart");
   var entryEnd = document.getElementById("entryEnd");
   var addEntryBtn = document.getElementById("addEntryBtn");
@@ -895,6 +932,122 @@
   var dailyEntries = []; // [{id, project, start, end, minutes}]
   var dailyEntrySeq = 1;
 
+  // 일별 계산기 프로젝트 목록 (여기 순서대로 셀렉트 박스에 표시됩니다)
+  var DAILY_PROJECTS = [
+    "오피스키퍼 3.0",
+    "오피스키퍼 EP",
+    "오피스넥스트_플랫폼",
+    "오피스챗",
+    "오피스노트",
+    "오피스메일",
+    "PCFILTER 3.1",
+    "PCFILTER 3.1 Mac",
+    "WEBFILTER",
+    "WEBFILTER SCAN",
+    "SERVERFILTER",
+    "AIFILTER",
+    "AXFILTER"
+  ];
+  var CUSTOM_PROJECT_VALUE = "__custom__";
+
+  function initProjectSelect(){
+    entryProject.innerHTML = "";
+    entryProject.appendChild(el("option", {value:"", text:"프로젝트 선택"}));
+    DAILY_PROJECTS.forEach(function(p){
+      entryProject.appendChild(el("option", {value:p, text:p}));
+    });
+    entryProject.appendChild(el("option", {value:CUSTOM_PROJECT_VALUE, text:"기타 (직접 입력)"}));
+  }
+  function syncCustomProjectInput(){
+    var isCustom = entryProject.value === CUSTOM_PROJECT_VALUE;
+    entryProjectCustom.style.display = isCustom ? "" : "none";
+    if (!isCustom) entryProjectCustom.value = "";
+    else entryProjectCustom.focus();
+  }
+  function currentProjectValue(){
+    if (entryProject.value === CUSTOM_PROJECT_VALUE) return (entryProjectCustom.value || "").trim();
+    return entryProject.value;
+  }
+  initProjectSelect();
+  entryProject.addEventListener("change", syncCustomProjectInput);
+
+  // ---------- 시간 입력: 셀렉트(오전/오후 · 시 · 분) ↔ 직접 입력 ----------
+  function pad2(n){ return (n<10 ? "0" : "") + n; }
+
+  function TimePicker(prefix, input){
+    this.ampm   = document.getElementById(prefix + "Ampm");
+    this.hour   = document.getElementById(prefix + "Hour");
+    this.minute = document.getElementById(prefix + "Minute");
+    this.group  = this.ampm.parentNode;
+    this.input  = input;
+
+    this.ampm.appendChild(el("option", {value:"", text:"오전/오후"}));
+    this.ampm.appendChild(el("option", {value:"AM", text:"오전"}));
+    this.ampm.appendChild(el("option", {value:"PM", text:"오후"}));
+
+    this.hour.appendChild(el("option", {value:"", text:"시"}));
+    for (var h=1; h<=12; h++) this.hour.appendChild(el("option", {value:String(h), text:h + "시"}));
+
+    this.minute.appendChild(el("option", {value:"", text:"분"}));
+    for (var m=0; m<60; m++) this.minute.appendChild(el("option", {value:String(m), text:pad2(m) + "분"}));
+
+    var self = this;
+    function onSelectChange(){ self.input.value = self.readSelects(); }
+    this.ampm.addEventListener("change", onSelectChange);
+    this.hour.addEventListener("change", onSelectChange);
+    this.minute.addEventListener("change", onSelectChange);
+    this.input.addEventListener("change", function(){ self.writeSelects(self.input.value); });
+  }
+  // 셀렉트 값 → "HH:MM" (미완성이면 "")
+  TimePicker.prototype.readSelects = function(){
+    var ap = this.ampm.value, h = this.hour.value, m = this.minute.value;
+    if (!ap || h === "" || m === "") return "";
+    var hh = parseInt(h, 10) % 12;
+    if (ap === "PM") hh += 12;
+    return pad2(hh) + ":" + pad2(parseInt(m, 10));
+  };
+  // "HH:MM" → 셀렉트 값
+  TimePicker.prototype.writeSelects = function(value){
+    var mm = /^(\d{1,2}):(\d{2})$/.exec(value || "");
+    if (!mm){ this.ampm.value = ""; this.hour.value = ""; this.minute.value = ""; return; }
+    var h24 = parseInt(mm[1], 10), min = parseInt(mm[2], 10);
+    this.ampm.value = h24 < 12 ? "AM" : "PM";
+    var h12 = h24 % 12; if (h12 === 0) h12 = 12;
+    this.hour.value = String(h12);
+    this.minute.value = String(min);
+  };
+  TimePicker.prototype.setMode = function(manual){
+    this.group.hidden = manual;
+    this.input.style.display = manual ? "" : "none";
+  };
+  TimePicker.prototype.clear = function(){
+    this.input.value = "";
+    this.ampm.value = ""; this.hour.value = ""; this.minute.value = "";
+  };
+
+  var startPicker = new TimePicker("start", entryStart);
+  var endPicker   = new TimePicker("end", entryEnd);
+  var manualTimeMode = false;
+
+  function applyTimeMode(){
+    startPicker.setMode(manualTimeMode);
+    endPicker.setMode(manualTimeMode);
+    timeModeBtn.textContent = manualTimeMode ? "메뉴에서 고르기" : "직접 입력으로 바꾸기";
+    timeModeHint.textContent = manualTimeMode
+      ? "시간을 직접 타이핑하는 중 (예: 오후 7:48)"
+      : "오전/오후 · 시 · 분을 골라 입력하는 중";
+  }
+  timeModeBtn.addEventListener("click", function(){
+    manualTimeMode = !manualTimeMode;
+    // 모드를 바꿔도 이미 입력한 값은 그대로 유지
+    if (!manualTimeMode){
+      startPicker.writeSelects(entryStart.value);
+      endPicker.writeSelects(entryEnd.value);
+    }
+    applyTimeMode();
+  });
+  applyTimeMode();
+
   function parseTimeToMinutes(str){
     if (!str) return null;
     var m = /^(\d{1,2}):(\d{2})$/.exec(str);
@@ -903,13 +1056,33 @@
     if (isNaN(h) || isNaN(mm)) return null;
     return h*60 + mm;
   }
+  // 휴게시간(점심) — 이 시간대와 겹치는 만큼 소요 시간에서 자동으로 빼줍니다.
+  var BREAK_START = 12*60;   // 12:00
+  var BREAK_END   = 13*60;   // 13:00
+  function breakOverlap(startMin, endMin){
+    var ov = Math.min(endMin, BREAK_END) - Math.max(startMin, BREAK_START);
+    return ov > 0 ? ov : 0;
+  }
+  // "19:48" → "오후 7:48"
+  function fmtClock(value){
+    var m = /^(\d{1,2}):(\d{2})$/.exec(value || "");
+    if (!m) return value || "";
+    var h24 = parseInt(m[1], 10);
+    var h12 = h24 % 12; if (h12 === 0) h12 = 12;
+    return (h24 < 12 ? "오전 " : "오후 ") + h12 + ":" + m[2];
+  }
+  // 10분 단위 반올림 (21분 → 20분, 47분 → 50분, 25분 → 30분)
+  function roundTo10(minutes){
+    return Math.round(minutes/10) * 10;
+  }
   function fmtDuration(minutes){
     var h = Math.floor(minutes/60), m = minutes % 60;
     if (h && m) return h + "시간 " + m + "분";
     if (h) return h + "시간";
     return m + "분";
   }
-  function round4(n){ return Math.round(n*10000)/10000; }
+  // 환산 일수는 소수점 4자리에서 버림 (사내 기준표와 동일: 1.2291, 1.2916 …)
+  function round4(n){ return Math.floor(n*10000 + 1e-6)/10000; }
   function fmtDay(n){
     var r = round4(n);
     return (Math.abs(r - Math.round(r)) < 1e-9) ? String(Math.round(r)) : String(r);
@@ -929,21 +1102,15 @@
         });
         var tr = el("tr", {}, [
           el("td", {class:"proj", text:en.project}),
-          el("td", {class:"num", text:en.start}),
-          el("td", {class:"num", text:en.end}),
-          el("td", {class:"num", text: fmtDuration(en.minutes)}),
+          el("td", {class:"num", text: fmtClock(en.start)}),
+          el("td", {class:"num", text: fmtClock(en.end)}),
+          el("td", {class:"num", text: fmtDuration(en.minutes) + (en.breakMinutes ? " (휴게 -" + fmtDuration(en.breakMinutes) + ")" : "")}),
           el("td", {class:"num", text: fmtDay(en.minutes/480)}),
           el("td", {}, [delBtn])
         ]);
         entryBody.appendChild(tr);
       });
     }
-
-    var projects = [];
-    var seen = {};
-    dailyEntries.forEach(function(en){ if (!seen[en.project]){ seen[en.project]=true; projects.push(en.project); } });
-    entryProjectList.innerHTML = "";
-    projects.forEach(function(p){ entryProjectList.appendChild(el("option", {value:p})); });
   }
 
   function renderSummary(){
@@ -977,16 +1144,30 @@
   }
 
   addEntryBtn.addEventListener("click", function(){
-    var project = (entryProject.value || "").trim();
+    var project = currentProjectValue();
     var start = entryStart.value;
     var end = entryEnd.value;
 
-    if (!project){ setMsg(entryMsg, "프로젝트를 입력해주세요.", "error"); return; }
-    if (!start || !end){ setMsg(entryMsg, "시작 시간과 종료 시간을 모두 입력해주세요.", "error"); return; }
+    if (!project){ setMsg(entryMsg, "프로젝트를 선택해주세요.", "error"); return; }
+    if (!start || !end){
+      setMsg(entryMsg, manualTimeMode
+        ? "시작 시간과 종료 시간을 모두 입력해주세요."
+        : "시작·종료의 오전/오후 · 시 · 분을 모두 선택해주세요.", "error");
+      return;
+    }
     var startMin = parseTimeToMinutes(start);
     var endMin = parseTimeToMinutes(end);
     if (startMin === null || endMin === null || endMin <= startMin){
       setMsg(entryMsg, "종료 시간은 시작 시간보다 늦어야 해요.", "error");
+      return;
+    }
+    var breakMin = breakOverlap(startMin, endMin);
+    var rawMin = (endMin - startMin) - breakMin;
+    var netMin = roundTo10(rawMin);
+    if (netMin <= 0){
+      setMsg(entryMsg, rawMin > 0
+        ? "10분 단위로 반올림하면 0분이라 계산할 수 없어요."
+        : "휴게시간(12:00~13:00)을 빼면 남는 시간이 없어요.", "error");
       return;
     }
     setMsg(entryMsg, "", "info");
@@ -996,11 +1177,14 @@
       project: project,
       start: start,
       end: end,
-      minutes: endMin - startMin
+      breakMinutes: breakMin,
+      minutes: netMin
     });
     entryProject.value = "";
-    entryStart.value = "";
-    entryEnd.value = "";
+    entryProjectCustom.value = "";
+    syncCustomProjectInput();
+    startPicker.clear();
+    endPicker.clear();
     entryProject.focus();
     renderEntries();
     renderSummary();
