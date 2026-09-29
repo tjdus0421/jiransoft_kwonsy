@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>By Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: home = create input + project list; project page = title, tab bar, one writing area per tab. */
+:root{
+  --bg:#F5F5F0; --surface:#FFFFFF; --surface-2:#EDEDE5; --border:#DFDED3;
+  --text:#1B221E; --text-dim:#59635B; --text-faint:#879086;
+  --accent:#1F6F5C; --accent-strong:#154F41; --accent-tint:#E3EFEA; --danger:#A83A2C; --danger-tint:#F8E4E0;
+  --shadow:0 1px 2px rgba(27,34,30,.06),0 8px 24px -14px rgba(27,34,30,.14);
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --serif:'Noto Serif KR',ui-serif,Georgia,serif;
+  --sans:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',ui-sans-serif,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12140F; --surface:#1B1E17; --surface-2:#23271F; --border:#343B30;
+    --text:#EEF0E8; --text-dim:#A7B0A0; --text-faint:#78816F;
+    --accent:#57C4A2; --accent-strong:#7BD9BA; --accent-tint:#1E332C; --danger:#EE8C7E; --danger-tint:#3B1E19;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12140F; --surface:#1B1E17; --surface-2:#23271F; --border:#343B30;
+  --text:#EEF0E8; --text-dim:#A7B0A0; --text-faint:#78816F;
+  --accent:#57C4A2; --accent-strong:#7BD9BA; --accent-tint:#1E332C; --danger:#EE8C7E; --danger-tint:#3B1E19;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.65}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+.wrap{max-width:860px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:flex;flex-direction:column;gap:24px}
+.stack{display:flex;flex-direction:column;gap:24px}
+.stack.tight{gap:18px}
+.eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(28px,4vw,36px);margin:2px 0 0;letter-spacing:-.01em;text-wrap:balance}
+
+.field{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;outline:none;width:100%;min-width:0}
+.field:focus{border-color:var(--accent)}
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.primary:hover{background:var(--accent-strong)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--text-dim);padding:6px 10px;font-size:13.5px}
+.btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn.danger{color:var(--danger)}
+.btn.armed{background:var(--danger-tint);color:var(--danger)}
+
+/* home */
+.create{display:flex;gap:8px}
+.list-label{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;display:flex;justify-content:space-between}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.plist li+li{border-top:1px solid var(--border)}
+.prow{width:100%;text-align:left;border:0;background:transparent;padding:14px 18px;display:flex;align-items:center;gap:14px}
+.prow:hover{background:var(--surface-2)}
+.prow .icon{width:30px;height:30px;border-radius:8px;background:var(--accent-tint);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+.prow .name{font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
+.prow .meta{font-family:var(--mono);font-size:12px;color:var(--text-faint);white-space:nowrap}
+.prow .arrow{color:var(--text-faint)}
+.empty{padding:28px 18px;color:var(--text-faint);text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:14px}
+
+/* project page */
+.back{align-self:flex-start}
+.ptitle{font-family:var(--serif);font-weight:700;font-size:clamp(28px,4vw,38px);border:0;background:transparent;outline:none;width:100%;padding:0;letter-spacing:-.01em}
+.ptitle::placeholder{color:var(--text-faint)}
+.tabs{display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{border:0;background:transparent;padding:9px 14px;font-weight:600;font-size:14.5px;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+.tab.add{color:var(--text-faint);font-weight:500}
+.tabbar-tools{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.tabname{border:0;background:transparent;outline:none;font-weight:700;font-size:18px;padding:4px 0;min-width:0;flex:1}
+.saved{font-size:12.5px;color:var(--text-faint)}
+.editor{width:100%;min-height:360px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:0;overflow:hidden}
+.editor::placeholder{color:var(--text-faint)}
+.pagefoot{display:flex;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 홈: 프로젝트 만들기 + 목록 -->
+  <section id="home" class="stack" hidden>
+    <header>
+      <div class="eyebrow">프로젝트 노트</div>
+      <h1>By Product</h1>
+    </header>
+    <div class="create" id="createForm">
+      <input class="field" id="newName" placeholder="새 프로젝트 이름을 입력하세요" autocomplete="off" aria-label="새 프로젝트 이름">
+      <button class="btn primary" type="button" id="createBtn">만들기</button>
+    </div>
+    <div class="list-label"><span>프로젝트 목록</span><span id="count"></span></div>
+    <ul class="plist" id="plist"></ul>
+    <div class="empty" id="empty">아직 프로젝트가 없어요. 위에 이름을 입력하고 만들기를 눌러 보세요.</div>
+  </section>
+
+  <!-- 프로젝트 페이지: 탭별 내용 -->
+  <section id="page" class="stack tight" hidden>
+    <button class="btn ghost back" id="backBtn" type="button">← 프로젝트 목록</button>
+    <input class="ptitle" id="pTitle" placeholder="제목 없음" aria-label="프로젝트 이름">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="tabbar-tools">
+      <input class="tabname" id="tabName" aria-label="탭 이름" placeholder="탭 이름">
+      <span class="saved" id="saved"></span>
+      <button class="btn ghost danger" id="delTab" type="button">탭 삭제</button>
+    </div>
+    <textarea class="editor" id="editor" placeholder="여기에 알아본 내용을 자유롭게 적으세요. 입력하면 자동으로 저장돼요."></textarea>
+    <div class="pagefoot"><button class="btn ghost danger" id="delProject" type="button">프로젝트 삭제</button></div>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const KEY = 'byproduct.v2';
+  const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const fmt = t => { const d=new Date(t); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; };
+
+  // 데이터: { projects: [ {id, name, createdAt, updatedAt, activeTab, tabs:[{id,name,body}]} ] }
+  let data = { projects: [] };
+  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && Array.isArray(d.projects)) data = d; } catch(e) {}
+  let saveT;
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(data)); $('#saved').textContent = '저장됨'; }
+    catch(e){ $('#saved').textContent = '저장하지 못했어요'; }
+  }
+  function saveSoon(){ $('#saved').textContent = '저장 중…'; clearTimeout(saveT); saveT = setTimeout(save, 400); }
+
+  const find = id => data.projects.find(p => p.id === id);
+  function armed(btn, label, fn){
+    if (btn.dataset.armed){ delete btn.dataset.armed; btn.classList.remove('armed'); fn(); return; }
+    const old = btn.textContent; btn.dataset.armed = '1'; btn.dataset.old = old; btn.textContent = label; btn.classList.add('armed');
+    setTimeout(() => { if (btn.dataset.armed){ delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('armed'); } }, 3000);
+  }
+  function resetArmed(){ document.querySelectorAll('[data-armed]').forEach(b => { b.textContent = b.dataset.old; delete b.dataset.armed; b.classList.remove('armed'); }); }
+
+  // ---------- 화면 전환 (#p-아이디 이면 프로젝트 페이지) ----------
+  function route(){
+    resetArmed();
+    const m = location.hash.match(/^#p-(.+)$/);
+    const p = m && find(m[1]);
+    if (p) showPage(p); else showHome();
+  }
+  window.addEventListener('hashchange', route);
+
+  // ---------- 홈 ----------
+  function showHome(){
+    $('#page').hidden = true; $('#home').hidden = false;
+    const ul = $('#plist'); ul.replaceChildren();
+    const list = [...data.projects].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+    $('#empty').hidden = list.length > 0; ul.hidden = list.length === 0;
+    $('#count').textContent = list.length ? `${list.length}개` : '';
+    list.forEach(p => {
+      const li = document.createElement('li');
+      const b = document.createElement('button'); b.type='button'; b.className='prow';
+      const icon = document.createElement('span'); icon.className='icon'; icon.textContent = (p.name || '').trim().charAt(0) || '?';
+      const name = document.createElement('span'); name.className='name'; name.textContent = p.name || '제목 없음';
+      const meta = document.createElement('span'); meta.className='meta'; meta.textContent = `탭 ${p.tabs.length} · ${fmt(p.updatedAt || p.createdAt)}`;
+      const arrow = document.createElement('span'); arrow.className='arrow'; arrow.textContent='›';
+      b.append(icon, name, meta, arrow);
+      b.addEventListener('click', () => { location.hash = 'p-' + p.id; });
+      li.append(b); ul.append(li);
+    });
+  }
+  function createProject(){
+    const input = $('#newName');
+    const name = input.value.trim(); if (!name) { input.focus(); return; }
+    const t = { id: uid('t_'), name: '개요', body: '' };
+    const p = { id: uid('p_'), name, createdAt: Date.now(), updatedAt: Date.now(), activeTab: t.id, tabs: [t] };
+    data.projects.push(p); save(); input.value = '';
+    showHome(); input.focus();
+  }
+  $('#createBtn').addEventListener('click', createProject);
+  $('#newName').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return; // 한글 입력 중 Enter는 무시
+    e.preventDefault(); createProject();
+  });
+
+  // ---------- 프로젝트 페이지 ----------
+  let cur = null;
+  const activeTab = () => cur.tabs.find(t => t.id === cur.activeTab) || cur.tabs[0];
+  const touch = () => { cur.updatedAt = Date.now(); };
+
+  function showPage(p){
+    cur = p;
+    $('#home').hidden = true; $('#page').hidden = false;
+    $('#pTitle').value = p.name;
+    $('#saved').textContent = '';
+    renderTabs(); loadTab();
+    window.scrollTo({ top: 0 });
+  }
+  function renderTabs(){
+    const bar = $('#tabs'); bar.replaceChildren();
+    const at = activeTab();
+    cur.tabs.forEach(t => {
+      const b = document.createElement('button'); b.type='button'; b.className='tab'; b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', String(t.id === at.id)); b.textContent = t.name || '제목 없음';
+      b.addEventListener('click', () => { cur.activeTab = t.id; save(); renderTabs(); loadTab(); });
+      bar.append(b);
+    });
+    const add = document.createElement('button'); add.type='button'; add.className='tab add'; add.textContent='+ 새 탭';
+    add.addEventListener('click', () => {
+      const t = { id: uid('t_'), name: '새 탭', body: '' };
+      cur.tabs.push(t); cur.activeTab = t.id; touch(); save(); renderTabs(); loadTab();
+      const n = $('#tabName'); n.focus(); n.select();
+    });
+    bar.append(add);
+    $('#delTab').hidden = cur.tabs.length <= 1;
+  }
+  function loadTab(){
+    const t = activeTab();
+    $('#tabName').value = t.name;
+    $('#editor').value = t.body || '';
+    grow();
+  }
+  function grow(){ const e = $('#editor'); e.style.height = 'auto'; e.style.height = Math.max(360, e.scrollHeight) + 'px'; }
+
+  $('#pTitle').addEventListener('input', e => { cur.name = e.target.value; touch(); saveSoon(); });
+  $('#tabName').addEventListener('input', e => {
+    activeTab().name = e.target.value; touch(); saveSoon();
+    const sel = $('#tabs [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
+  });
+  $('#editor').addEventListener('input', e => { activeTab().body = e.target.value; touch(); grow(); saveSoon(); });
+  $('#delTab').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+    if (cur.tabs.length <= 1) return;
+    const id = activeTab().id; cur.tabs = cur.tabs.filter(t => t.id !== id); cur.activeTab = cur.tabs[0].id;
+    touch(); save(); renderTabs(); loadTab();
+  }));
+  $('#delProject').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 프로젝트 삭제', () => {
+    data.projects = data.projects.filter(p => p.id !== cur.id); save(); location.hash = '';
+  }));
+  $('#backBtn').addEventListener('click', () => { clearTimeout(saveT); save(); location.hash = ''; });
+  window.addEventListener('beforeunload', () => { clearTimeout(saveT); save(); });
+
+  route();
+})();
+</script>
+</body>
+</html>
