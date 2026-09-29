@@ -225,7 +225,7 @@ button{cursor:pointer}
 .emo-btn:hover{background:var(--surface-2)}
 .emo-btn[aria-checked="true"]{background:var(--accent-tint);border-color:var(--accent)}
 .emo-btn.none{font-size:12px;color:var(--text-faint)}
-textarea.field{resize:vertical;min-height:72px;line-height:1.6}
+textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
 .dfoot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:14px}
 .dfoot .sp{flex:1}
 .dialog.view{max-width:400px;gap:14px;border-top:6px solid var(--cbg)}
@@ -233,7 +233,8 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
 .vemo{font-size:20px;line-height:1;flex:none}
 .vemo:empty{display:none}
 .vhead h3{font-size:18px;overflow-wrap:anywhere;min-width:0}
-.vbody{margin:0;font-size:15px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.dialog.view{overflow:hidden}
+.vbody{flex:1;min-height:0;overflow-y:auto;padding-right:4px;margin:0;font-size:15px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
 .vbody.empty{color:var(--text-faint)}
 .preview-wrap{display:flex;justify-content:center;padding:4px 0}
 .preview-wrap .card{width:152px;cursor:default}
@@ -681,7 +682,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     if (location.hash) route(); else route();
   }));
   // ---------- 카드 ----------
-  const MAX_CARDS = 5, MAX_TITLE = 10, MAX_BODY = 50;
+  const MAX_CARDS = 5, MAX_TITLE = 10, MAX_BODY = 1000;
   const COLORS = [['gray','회색'],['green','초록'],['blue','파랑'],['yellow','노랑'],['orange','주황'],['red','빨강'],['purple','보라'],['pink','분홍']];
   const EMOJIS = ['📌','💡','📊','🎯','✅','⚠️','🚀','🧩','📝','💰','👥','🔍','📅','⭐','🔥','🛠️','📈','📣','🤝','🏁','❓','🔒','🌱'];
   const clip = (v, n) => Array.from(v).slice(0, n).join('');
