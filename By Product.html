@@ -136,6 +136,16 @@ button{cursor:pointer}
 .tab.add{color:var(--text-faint);font-weight:500}
 .tabbar-tools{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
 .tabname{border:0;background:transparent;outline:none;font-weight:700;font-size:18px;padding:4px 0;min-width:0;flex:1}
+.subbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:-8px}
+.subtabs{display:flex;flex-wrap:wrap;gap:6px}
+.subtabs:empty{display:none}
+.subtab{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:500;color:var(--text-dim)}
+.subtab:hover{color:var(--text)}
+.subtab[aria-selected="true"]{background:var(--accent-tint);border-color:var(--accent);color:var(--accent-strong);font-weight:600}
+.subadd{border:1px dashed var(--border);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text-faint)}
+.subadd:hover{color:var(--accent);border-color:var(--accent)}
+.subtools{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding-left:2px;border-left:2px solid var(--accent-tint);padding-left:10px}
+.subname{border:0;background:transparent;outline:none;font-weight:600;font-size:15px;padding:2px 0;min-width:0;flex:1;color:var(--text-dim)}
 .saved{font-size:12.5px;color:var(--text-faint)}
 .editor{width:100%;min-height:360px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:0;overflow:hidden}
 .editor::placeholder{color:var(--text-faint)}
@@ -242,6 +252,14 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
         <input class="tabname" id="tabName" aria-label="탭 이름" placeholder="탭 이름">
         <span class="saved" id="saved"></span>
         <button class="btn ghost danger" id="delTab" type="button">탭 삭제</button>
+      </div>
+      <div class="subbar" id="subBar">
+        <div class="subtabs" role="tablist" aria-label="하위 탭" id="subtabs"></div>
+        <button class="subadd" id="addSub" type="button">+ 하위 탭</button>
+      </div>
+      <div class="subtools" id="subTools" hidden>
+        <input class="subname" id="subName" aria-label="하위 탭 이름" placeholder="하위 탭 이름">
+        <button class="btn ghost danger" id="delSub" type="button">하위 탭 삭제</button>
       </div>
       <textarea class="editor" id="editor" placeholder="여기에 알아본 내용을 자유롭게 적으세요. 입력하면 자동으로 저장돼요."></textarea>
       <div class="pagefoot"><button class="btn ghost danger" id="delProject" type="button">프로젝트 삭제</button></div>
@@ -506,15 +524,51 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
       const n = $('#tabName'); n.focus(); n.select();
     });
     bar.append(add);
-
+    renderSubs();
   }
+  // ---------- 하위 탭 ----------
+  const subsOf = t => t && Array.isArray(t.subs) ? t.subs : [];
+  const activeSub = t => { const l = subsOf(t); return l.find(x => x.id === t.activeSub) || l[0] || null; };
+  const target = () => { const t = activeTab(); return t ? (activeSub(t) || t) : null; }; // 본문을 적을 대상
+  function renderSubs(){
+    const t = activeTab(), wrap = $('#subtabs'); wrap.replaceChildren();
+    $('#subBar').hidden = !t; if (!t) { $('#subTools').hidden = true; return; }
+    const l = subsOf(t), as = activeSub(t);
+    l.forEach(x => {
+      const b = document.createElement('button'); b.type='button'; b.className='subtab'; b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', String(!!as && x.id === as.id)); b.textContent = x.name || '제목 없음';
+      b.addEventListener('click', () => { t.activeSub = x.id; save(); renderSubs(); loadTab(); });
+      wrap.append(b);
+    });
+    $('#subTools').hidden = l.length === 0;
+    if (as) $('#subName').value = as.name;
+  }
+  $('#addSub').addEventListener('click', () => {
+    const t = activeTab(); if (!t) return;
+    if (!Array.isArray(t.subs)) t.subs = [];
+    // 첫 하위 탭을 만들 때 탭에 적어 둔 내용은 '기본' 하위 탭으로 옮김
+    if (t.subs.length === 0 && (t.body || '').trim()) { t.subs.push({ id: uid('s_'), name: '기본', body: t.body }); t.body = ''; }
+    const x = { id: uid('s_'), name: '하위 탭 ' + (t.subs.length + 1), body: '' };
+    t.subs.push(x); t.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
+    const n = $('#subName'); n.focus(); n.select();
+  });
+  $('#subName').addEventListener('input', e => {
+    const t = activeTab(), x = t && activeSub(t); if (!x) return;
+    x.name = e.target.value; touch(); saveSoon();
+    const sel = $('#subtabs [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
+  });
+  $('#delSub').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+    const t = activeTab(), x = t && activeSub(t); if (!x) return;
+    t.subs = t.subs.filter(y => y.id !== x.id); t.activeSub = t.subs[0] ? t.subs[0].id : null;
+    touch(); save(); renderSubs(); loadTab();
+  }));
   function loadTab(){
     const t = activeTab();
     const has = !!t;
     $('#tabTools').hidden = !has; $('#editor').hidden = !has;
     if (!has) return;
     $('#tabName').value = t.name;
-    $('#editor').value = t.body || '';
+    $('#editor').value = target().body || '';
     grow();
   }
   function grow(){ const e = $('#editor'); e.style.height = 'auto'; e.style.height = Math.max(360, e.scrollHeight) + 'px'; }
@@ -528,7 +582,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     activeTab().name = e.target.value; touch(); saveSoon();
     const sel = $('#tabs [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
   });
-  $('#editor').addEventListener('input', e => { if (!activeTab()) return; activeTab().body = e.target.value; touch(); grow(); saveSoon(); });
+  $('#editor').addEventListener('input', e => { const x = target(); if (!x) return; x.body = e.target.value; touch(); grow(); saveSoon(); });
   $('#delTab').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
     const t = activeTab(); if (!t) return;
     cur.tabs = cur.tabs.filter(x => x.id !== t.id); cur.activeTab = cur.tabs[0] ? cur.tabs[0].id : null;
