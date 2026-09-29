@@ -188,6 +188,13 @@ button{cursor:pointer}
 textarea.field{resize:vertical;min-height:72px;line-height:1.6}
 .dfoot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:14px}
 .dfoot .sp{flex:1}
+.dialog.view{max-width:400px;gap:14px;border-top:6px solid var(--cbg)}
+.vhead{display:flex;align-items:center;gap:8px;min-width:0}
+.vemo{font-size:20px;line-height:1;flex:none}
+.vemo:empty{display:none}
+.vhead h3{font-size:18px;overflow-wrap:anywhere;min-width:0}
+.vbody{margin:0;font-size:15px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.vbody.empty{color:var(--text-faint)}
 .preview-wrap{display:flex;justify-content:center;padding:4px 0}
 .preview-wrap .card{width:152px;cursor:default}
 .preview-wrap .card:hover{transform:none}
@@ -543,16 +550,15 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     el.className = 'card'; el.dataset.c = c.color || 'gray';
     const e = document.createElement('span'); e.className='emo'; e.textContent = c.emoji || '';
     const t = document.createElement('span'); t.className='ct'; t.textContent = c.title || '카드명';
-    const b = document.createElement('span'); b.className='cb'; b.textContent = c.body || '';
     const hd = document.createElement('span'); hd.className='chead'; hd.append(e, t);
-    el.append(hd, b); el.title = [c.title, c.body].filter(Boolean).join('\n');
-    if (onClick) el.setAttribute('aria-label', `${c.title} 카드 수정`);
+    el.append(hd); // 카드에는 카드명만 표시
+    if (onClick) el.setAttribute('aria-label', `${c.title} 카드 보기`);
     return el;
   }
   function renderCards(){
     const wrap = $('#cards'); wrap.replaceChildren();
     const cards = cur.cards || (cur.cards = []);
-    cards.forEach(c => wrap.append(cardEl(c, () => openCardDialog(c))));
+    cards.forEach(c => wrap.append(cardEl(c, () => openCardView(c))));
     wrap.hidden = cards.length === 0;
     $('#cardsZone').classList.toggle('none', cards.length === 0);
     const full = cards.length >= MAX_CARDS;
@@ -560,10 +566,42 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
   }
   $('#addCard').addEventListener('click', () => { if ((cur.cards || []).length < MAX_CARDS) openCardDialog(null); });
 
-  function openCardDialog(card){
+  // 카드 보기 팝업: 카드명 + 본문만 표시, '수정하기'로 수정창 전환
+  function openCardView(card){
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog view" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+        <div class="vhead"><span class="vemo" id="viewEmo"></span><h3 id="viewTitle"></h3></div>
+        <p class="vbody" id="viewBody"></p>
+        <div class="dfoot"><span class="sp"></span>
+          <button class="btn" type="button" id="viewClose">닫기</button>
+          <button class="btn primary" type="button" id="viewEdit">수정하기</button>
+        </div>
+      </div>`;
+    const q = s => ov.querySelector(s);
+    q('.dialog').dataset.c = card.color || 'gray';
+    q('#viewEmo').textContent = card.emoji || '';
+    q('#viewTitle').textContent = card.title;
+    q('#viewBody').textContent = card.body || '본문 내용이 없어요.';
+    q('#viewBody').classList.toggle('empty', !card.body);
+    document.body.append(ov);
+    function close(restore){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (restore && last && last.isConnected) last.focus(); }
+    function onKey(e){
+      if (e.key === 'Escape'){ e.stopPropagation(); close(true); }
+      if (e.key === 'Tab'){ const f=[q('#viewClose'), q('#viewEdit')]; const i=f.indexOf(document.activeElement); e.preventDefault(); f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus(); }
+    }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(true); });
+    q('#viewClose').addEventListener('click', () => close(true));
+    q('#viewEdit').addEventListener('click', () => { close(false); openCardDialog(card, last); });
+    setTimeout(() => q('#viewEdit').focus(), 0);
+  }
+
+  function openCardDialog(card, returnFocus){
     const isNew = !card;
     const st = { color: card ? card.color : 'green', emoji: card ? card.emoji : '📌', title: card ? card.title : '', body: card ? card.body : '' };
-    const last = document.activeElement;
+    const last = returnFocus || document.activeElement;
     const ov = document.createElement('div'); ov.className = 'overlay';
     ov.innerHTML = `
       <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
@@ -587,7 +625,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     const name = q('#dlgName'), body = q('#dlgBody');
     name.value = st.title; body.value = st.body;
 
-    function preview(){ q('#dlgPreview').replaceChildren(cardEl({ ...st, title: st.title || '카드명', body: st.body || '본문 내용이 여기에 보여요.' })); }
+    function preview(){ q('#dlgPreview').replaceChildren(cardEl({ ...st, title: st.title || '카드명' })); }
     function counts(){
       const a = len(name.value), b = len(body.value);
       q('#cntName').textContent = `${a}/${MAX_TITLE}`; q('#cntName').classList.toggle('full', a >= MAX_TITLE);
