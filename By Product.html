@@ -151,6 +151,7 @@ button{cursor:pointer}
 .lv3 .subadd{font-size:12.5px;padding:3px 10px}
 .lv3 .subtools{border-left:0;padding-left:0}
 .lv3 .subname{font-size:14px}
+.more.show{opacity:1}
 .subname{border:0;background:transparent;outline:none;font-weight:600;font-size:15px;padding:2px 0;min-width:0;flex:1;color:var(--text-dim)}
 .saved{font-size:12.5px;color:var(--text-faint)}
 .editor{width:100%;min-height:360px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:0;overflow:hidden}
@@ -265,7 +266,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
       </div>
       <div class="subtools" id="subTools" hidden>
         <input class="subname" id="subName" aria-label="하위 탭 이름" placeholder="하위 탭 이름">
-        <button class="btn ghost danger" id="delSub" type="button">하위 탭 삭제</button>
+        <button class="more show" id="subMore" type="button" aria-label="하위 탭 더보기" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg></button>
       </div>
       <div class="lv3" id="lv3">
         <div class="subbar" id="sub2Bar">
@@ -346,6 +347,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     divider: '<svg viewBox="0 0 16 16"><path d="M2 8h12"/></svg>',
     pin: '<svg viewBox="0 0 16 16"><path d="M6 2h4l-.6 4 2.6 2.4H4L6.6 6z"/><path d="M8 8.4V14"/></svg>',
     unpin: '<svg viewBox="0 0 16 16"><path d="M6 2h4l-.6 4 2.6 2.4H4L6.6 6z"/><path d="M8 8.4V14M2 2l12 12"/></svg>',
+    plus: '<svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>',
     trash: '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>'
   };
   let openMenu = null;
@@ -356,7 +358,11 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     items.forEach(it => {
       const b = document.createElement('button'); b.type='button'; b.setAttribute('role','menuitem'); if (it.danger) b.className='danger';
       b.innerHTML = ICONS[it.icon] || ''; b.append(document.createTextNode(it.label));
-      b.addEventListener('click', e => { e.stopPropagation(); closeMenu(); it.run(); });
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        if (it.confirm && !b.dataset.ok){ b.dataset.ok = '1'; b.lastChild.textContent = it.confirm; b.classList.add('danger'); return; }
+        closeMenu(); it.run();
+      });
       el.append(b);
     });
     document.body.append(el);
@@ -557,7 +563,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
   function renderSubs(){
     LEVELS.forEach((L, i) => {
       const par = L.parent(), wrap = $('#' + L.list); wrap.replaceChildren();
-      if (i === 1) $('#lv3').hidden = !par;
+      if (i === 1){ const on = !!par && subsOf(par).length > 0; $('#lv3').hidden = !on; if (!on){ $('#' + L.tools).hidden = true; return; } }
       $('#' + L.bar).hidden = !par;
       if (!par){ $('#' + L.tools).hidden = true; return; }
       const l = subsOf(par), as = activeSub(par);
@@ -586,11 +592,28 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
       x.name = e.target.value; touch(); saveSoon();
       const sel = $('#' + L.list + ' [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
     });
-    $('#' + L.del).addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+    $('#' + L.del)?.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
       const par = L.parent(), x = par && activeSub(par); if (!x) return;
       par.subs = par.subs.filter(y => y.id !== x.id); par.activeSub = par.subs[0] ? par.subs[0].id : null;
       touch(); save(); renderSubs(); loadTab();
     }));
+  });
+  // 2단계 더보기: 하위 탭 추가(3단계) / 하위 탭 삭제
+  function addChild(par, prefix){
+    if (!Array.isArray(par.subs)) par.subs = [];
+    if (par.subs.length === 0 && (par.body || '').trim()) { par.subs.push({ id: uid('s_'), name: '기본', body: par.body }); par.body = ''; }
+    const x = { id: uid('s_'), name: prefix + (par.subs.length + 1), body: '' };
+    par.subs.push(x); par.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
+  }
+  $('#subMore').addEventListener('click', e => {
+    e.stopPropagation();
+    const t = activeTab(), x = t && activeSub(t); if (!x) return;
+    const items = [];
+    if (subsOf(x).length === 0) items.push({ icon:'plus', label:'하위 탭 추가', run: () => { addChild(x, '하위 탭 '); const n = $('#sub2Name'); n.focus(); n.select(); } });
+    items.push({ icon:'trash', label:'하위 탭 삭제', danger:true, confirm:'한 번 더 누르면 삭제', run: () => {
+      t.subs = t.subs.filter(y => y.id !== x.id); t.activeSub = t.subs[0] ? t.subs[0].id : null; touch(); save(); renderSubs(); loadTab();
+    }});
+    showMenu(e.currentTarget, items);
   });
   // 3단계 하위 탭은 더 나눌 수 없음 (subs를 만들지 않음)
 
