@@ -123,11 +123,37 @@
     font-size:12px;font-weight:700;
     font-family:'IBM Plex Mono',monospace;
   }
+  .tabbar{
+    display:flex;
+    gap:6px;
+    border-bottom:1px solid var(--border);
+  }
+  .tab-btn{
+    appearance:none;
+    border:none;
+    background:transparent;
+    color:var(--text-muted);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    padding:10px 4px;
+    margin-bottom:-1px;
+    border-bottom:2px solid transparent;
+    cursor:pointer;
+    transition:color .12s, border-color .12s;
+  }
+  .tab-btn + .tab-btn{ margin-left:14px; }
+  .tab-btn:hover{ color:var(--text); }
+  .tab-btn.active{
+    color:var(--accent);
+    border-bottom-color:var(--accent);
+  }
   .panel-stack{
     display:flex;
     flex-direction:column;
     gap:22px;
   }
+  .panel-stack[hidden]{ display:none; }
   section.panel{
     background:var(--surface);
     border:1px solid var(--border);
@@ -357,6 +383,77 @@
     resize:vertical;
     line-height:1.7;
   }
+  textarea#longSource{
+    min-height:110px;
+    resize:vertical;
+    line-height:1.7;
+  }
+  textarea#longOut{
+    min-height:260px;
+    resize:vertical;
+    line-height:1.7;
+    background:var(--surface-alt);
+  }
+  textarea#thBackground{
+    min-height:70px;
+    resize:vertical;
+    line-height:1.7;
+  }
+  textarea#thPreview{
+    min-height:240px;
+    resize:vertical;
+    line-height:1.7;
+    background:var(--surface-alt);
+  }
+  .th-plan{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .th-plan .th-plan-item{
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:5px 10px;
+    font-size:12.5px;
+    background:var(--surface-alt);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .th-custom-row .val{
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .th-custom-add{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .th-custom-add .th-name{ flex:0 1 160px; }
+  .th-custom-add .th-value{
+    flex:1 1 240px;
+    min-width:180px;
+    min-height:42px;
+    resize:vertical;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  .th-custom-add .btn{ flex:0 0 auto; }
+  .th-plan .th-plan-item.empty{
+    font-family:inherit;
+    color:var(--text-muted);
+    background:transparent;
+  }
+  .len-custom{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .len-custom input[type="text"]{ flex:0 1 200px; }
+  .len-custom .btn{ flex:0 0 auto; }
+  .btn-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
   .body-toolbar{
     display:flex;
     justify-content:space-between;
@@ -455,7 +552,13 @@
     <span class="eyebrow">품질관리팀 · DLP 탐지 검증 도구</span>
   </header>
 
-  <div class="panel-stack">
+  <div class="tabbar" role="tablist">
+    <button type="button" class="tab-btn active" id="tabBtnPattern" data-tab="pattern" role="tab" aria-selected="true">민감정보 세부 설정</button>
+    <button type="button" class="tab-btn" id="tabBtnLongform" data-tab="longform" role="tab" aria-selected="false">장문 생성</button>
+    <button type="button" class="tab-btn" id="tabBtnThreshold" data-tab="threshold" role="tab" aria-selected="false">임계치 테스트</button>
+  </div>
+
+  <div class="panel-stack" id="tabPanelPattern" role="tabpanel">
 
   <!-- STEP 1: PATTERN GENERATOR -->
   <section class="panel">
@@ -573,6 +676,201 @@
       </div>
 
       <div class="status-line" id="statusLine"></div>
+    </div>
+  </section>
+
+  </div>
+
+  <div class="panel-stack" id="tabPanelLongform" role="tabpanel" hidden>
+
+  <!-- LONGFORM STEP 1: SOURCE -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">1</span>
+      <div>
+        <h2>원본 문구 입력</h2>
+      </div>
+    </div>
+    <div class="panel-body">
+      <textarea id="longSource" spellcheck="false"></textarea>
+      <div class="body-toolbar">
+        <span class="counter" id="longSourceCounter">0자</span>
+        <button class="btn ghost sm" id="clearLongBtn" type="button">전체 지우기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LONGFORM STEP 2: TARGET LENGTH -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">2</span>
+      <div>
+        <h2>분량 선택</h2>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div>
+        <span class="field-label">목표 글자 수</span>
+        <div class="chips" id="lengthChips"></div>
+      </div>
+
+      <div>
+        <span class="field-label">직접 입력</span>
+        <div class="len-custom">
+          <input type="text" id="customLength" inputmode="numeric" autocomplete="off" spellcheck="false">
+          <button class="btn sm" id="customLengthBtn" type="button">적용</button>
+        </div>
+      </div>
+
+      <div>
+        <span class="field-label">반복 구분 — 반복되는 문구 사이에 넣을 것</span>
+        <div class="chips" id="joinChips"></div>
+      </div>
+
+      <label class="checkline"><input type="checkbox" id="exactTrim" checked> 목표 글자 수에 정확히 맞춰 자르기</label>
+    </div>
+  </section>
+
+  <!-- LONGFORM STEP 3: RESULT -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">3</span>
+      <div>
+        <h2>생성 결과</h2>
+      </div>
+    </div>
+    <div class="panel-body">
+      <textarea id="longOut" spellcheck="false" readonly placeholder="위에서 목표 글자 수를 선택하면 여기에 생성됩니다."></textarea>
+      <div class="body-toolbar">
+        <span class="counter" id="longOutCounter">0자 · 0줄</span>
+        <div class="btn-row">
+          <button class="btn ghost sm" id="copyLongBtn" type="button">복사</button>
+          <button class="btn sm" id="sendLongBtn" type="button">문서 본문으로 보내기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div>
+
+  <div class="panel-stack" id="tabPanelThreshold" role="tabpanel" hidden>
+
+  <!-- THRESHOLD STEP 1: ITEMS -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">1</span>
+      <div>
+        <h2>민감정보 항목 선택</h2>
+        <p>선택한 항목들이 번갈아 가며 문서에 삽입됩니다.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div>
+        <span class="field-label">기본 항목 (복수 선택 가능)</span>
+        <div class="chips" id="thItemChips"></div>
+      </div>
+
+      <div>
+        <span class="field-label">직접 입력 — 실제 탐지되는 값을 그대로 넣기</span>
+        <div class="th-custom-add">
+          <input type="text" class="th-name" id="thCustomName" placeholder="항목명 (예: 주민등록번호)" autocomplete="off" spellcheck="false">
+          <textarea class="th-value" id="thCustomValue" rows="1" placeholder="값 — 한 줄에 하나씩, 여러 줄 붙여넣기 가능" spellcheck="false"></textarea>
+          <button class="btn sm" id="thCustomAddBtn" type="button">추가</button>
+        </div>
+        <div class="sample-list" id="thCustomList" style="margin-top:10px;"></div>
+        <div class="status-line" id="thCustomNote" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="checkgrid">
+        <label class="checkline"><input type="checkbox" id="thRandomize" checked> 건마다 다른 값으로 생성 (중복 제거 회피)</label>
+        <label class="checkline"><input type="checkbox" id="thKeepCustom" checked> 직접 입력 값은 랜덤화하지 않고 그대로 사용</label>
+        <label class="checkline"><input type="checkbox" id="thLabel" checked> 항목명 라벨 포함</label>
+        <label class="checkline"><input type="checkbox" id="thHeader" checked> 파일 머리말에 건수 표기</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- THRESHOLD STEP 2: COUNTS -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">2</span>
+      <div>
+        <h2>검출 건수 세트</h2>
+        <p>선택한 건수마다 파일이 하나씩 만들어집니다. 정책 임계치의 바로 아래·위 값을 함께 고르세요.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div>
+        <span class="field-label">건수 (복수 선택 가능)</span>
+        <div class="chips" id="thCountChips"></div>
+      </div>
+
+      <div>
+        <span class="field-label">건수 직접 추가</span>
+        <div class="len-custom">
+          <input type="text" id="thCustomCount" inputmode="numeric" placeholder="예: 7" autocomplete="off" spellcheck="false">
+          <button class="btn sm" id="thCustomCountBtn" type="button">추가</button>
+        </div>
+      </div>
+
+      <div>
+        <span class="field-label">배경 문구 — 민감정보 사이에 끼워 넣을 일반 문장</span>
+        <textarea id="thBackground" spellcheck="false"></textarea>
+        <label class="checkline" style="margin-top:8px;"><input type="checkbox" id="thUseBackground" checked> 배경 문구 삽입</label>
+      </div>
+
+      <div>
+        <span class="field-label">생성 예정 목록</span>
+        <div class="th-plan" id="thPlan"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THRESHOLD STEP 3: PREVIEW + EXPORT -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="step-num">3</span>
+      <div>
+        <h2>미리보기 및 파일 생성</h2>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div>
+        <div class="copybar">
+          <span class="field-label" style="margin:0;">미리보기</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="counter" id="thPreviewLabel">—</span>
+            <button class="btn ghost sm" id="thPrevBtn" type="button">◀</button>
+            <button class="btn ghost sm" id="thNextBtn" type="button">▶</button>
+          </div>
+        </div>
+        <textarea id="thPreview" spellcheck="false" readonly placeholder="항목과 건수를 선택하면 여기에 표시됩니다."></textarea>
+        <div class="body-toolbar">
+          <span class="counter" id="thPreviewCounter">0자 · 0줄</span>
+          <div class="btn-row">
+            <button class="btn ghost sm" id="thCopyBtn" type="button">복사</button>
+            <button class="btn sm" id="thSendBtn" type="button">문서 본문으로 보내기</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span class="field-label" style="margin-bottom:6px;">파일명 앞부분 (확장자 제외)</span>
+        <input type="text" id="thFileBase" value="threshold_test">
+      </div>
+
+      <div>
+        <span class="field-label" style="margin-bottom:6px;">파일 형식 — 중요 기능</span>
+        <div class="checkgrid" id="thFormatChecksMain"></div>
+        <span class="field-label" style="margin-bottom:2px; margin-top:10px;">파일 형식 — 이미지 기능</span>
+        <div class="checkgrid" id="thFormatChecksImage"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="thDownloadZipBtn" type="button">건수별 파일 ZIP으로 생성</button>
+      </div>
+
+      <div class="status-line" id="thStatusLine"></div>
     </div>
   </section>
 
@@ -22753,6 +23051,607 @@ var src_default = GIFEncoder;
   [['downloadMultiBtn', 'pattern']].forEach(([id, source]) => {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', () => handleMultiExport(source));
+  });
+
+  // ---------------------------------------------------------------------
+  // 장문 생성 탭
+  //  입력한 문구를 목표 글자 수가 될 때까지 반복해서 붙여 장문을 만든다.
+  // ---------------------------------------------------------------------
+  const LENGTH_PRESETS = [100, 500, 1000, 2000, 5000, 10000, 50000, 100000];
+  const MAX_LENGTH = 2000000;
+  const JOIN_MODES = [
+    { key:'newline', label:'줄바꿈', sep:'\n' },
+    { key:'space',   label:'공백',   sep:' '  },
+    { key:'none',    label:'붙여쓰기', sep:''  },
+  ];
+
+  const longSource        = document.getElementById('longSource');
+  const longSourceCounter = document.getElementById('longSourceCounter');
+  const longOut           = document.getElementById('longOut');
+  const longOutCounter    = document.getElementById('longOutCounter');
+  const lengthChips       = document.getElementById('lengthChips');
+  const joinChips         = document.getElementById('joinChips');
+  const customLength      = document.getElementById('customLength');
+  const exactTrim         = document.getElementById('exactTrim');
+
+  let longTarget = null;        // 선택된 목표 글자 수 (미선택이면 null)
+  let longJoinMode = 'newline';
+
+  const fmtNum = n => n.toLocaleString('ko-KR');
+
+  function buildLongText(src, target, sep, exact){
+    if (!src) return '';
+    const unitLen = src.length + sep.length;
+    const reps = Math.max(1, Math.ceil(target / unitLen));
+    let out = new Array(reps).fill(src).join(sep);
+    if (exact){
+      // 구분자 길이 때문에 한 조각 모자랄 수 있으므로 채운 뒤 정확히 자른다.
+      while (out.length < target) out += sep + src;
+      out = out.slice(0, target);
+    }
+    return out;
+  }
+
+  function renderLong(){
+    const src = longSource.value;
+    longSourceCounter.textContent = `${fmtNum(src.length)}자`;
+    if (longTarget == null) return;
+    if (!src.trim()){
+      longOut.value = '';
+      longOutCounter.textContent = '0자 · 0줄';
+      return;
+    }
+    const mode = JOIN_MODES.find(m => m.key === longJoinMode) || JOIN_MODES[0];
+    const out = buildLongText(src, longTarget, mode.sep, exactTrim.checked);
+    longOut.value = out;
+    const lines = out ? out.split('\n').length : 0;
+    longOutCounter.textContent = `${fmtNum(out.length)}자 · ${fmtNum(lines)}줄`;
+  }
+
+  function clearLengthChipSelection(){
+    lengthChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  }
+
+  LENGTH_PRESETS.forEach(n => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip';
+    btn.dataset.len = String(n);
+    btn.textContent = `${fmtNum(n)}자`;
+    btn.addEventListener('click', () => {
+      longTarget = n;
+      clearLengthChipSelection();
+      btn.classList.add('active');
+      customLength.value = '';
+      if (!longSource.value.trim()){
+        showToast('먼저 원본 문구를 입력해주세요.', 'err');
+      }
+      renderLong();
+    });
+    lengthChips.appendChild(btn);
+  });
+
+  JOIN_MODES.forEach((mode, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip' + (i === 0 ? ' active' : '');
+    btn.textContent = mode.label;
+    btn.addEventListener('click', () => {
+      longJoinMode = mode.key;
+      joinChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      renderLong();
+    });
+    joinChips.appendChild(btn);
+  });
+
+  function applyCustomLength(){
+    const n = parseInt(String(customLength.value).replace(/[,\s]/g, ''), 10);
+    if (!Number.isFinite(n) || n < 1){
+      showToast('1 이상의 숫자를 입력해주세요.', 'err');
+      return;
+    }
+    if (n > MAX_LENGTH){
+      showToast(`최대 ${fmtNum(MAX_LENGTH)}자까지 생성할 수 있습니다.`, 'err');
+      return;
+    }
+    longTarget = n;
+    clearLengthChipSelection();
+    if (!longSource.value.trim()){
+      showToast('먼저 원본 문구를 입력해주세요.', 'err');
+    }
+    renderLong();
+  }
+  document.getElementById('customLengthBtn').addEventListener('click', applyCustomLength);
+  customLength.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ e.preventDefault(); applyCustomLength(); }
+  });
+
+  longSource.addEventListener('input', renderLong);
+  exactTrim.addEventListener('change', renderLong);
+
+  document.getElementById('copyLongBtn').addEventListener('click', async () => {
+    if (!longOut.value){
+      showToast('생성된 장문이 없습니다.', 'err');
+      return;
+    }
+    const ok = await copyText(longOut.value);
+    if (ok) showToast(`${fmtNum(longOut.value.length)}자를 클립보드에 복사했습니다.`, 'ok');
+    else showToast('클립보드 복사에 실패했습니다. 직접 선택해 복사해주세요.', 'err');
+  });
+
+  document.getElementById('sendLongBtn').addEventListener('click', () => {
+    if (!longOut.value){
+      showToast('생성된 장문이 없습니다.', 'err');
+      return;
+    }
+    setBodyValue(longOut.value);
+    activateTab('pattern');
+    showToast('민감정보 세부 설정 탭의 문서 본문으로 보냈습니다.', 'ok');
+  });
+
+  document.getElementById('clearLongBtn').addEventListener('click', () => {
+    longSource.value = '';
+    longOut.value = '';
+    longTarget = null;
+    customLength.value = '';
+    clearLengthChipSelection();
+    longSourceCounter.textContent = '0자';
+    longOutCounter.textContent = '0자 · 0줄';
+  });
+
+  renderLong();
+
+
+  // ---------------------------------------------------------------------
+  // 임계치 테스트 탭
+  //  DLP 정책이 보통 "문서당 N건 이상 검출 시 차단"으로 동작하므로,
+  //  민감정보를 정확히 N건만 담은 문서를 건수별로 만들어 경계값을 확인한다.
+  // ---------------------------------------------------------------------
+  const TH_DEFAULT_COUNTS = [1, 2, 4, 5, 6, 9, 10, 11, 20, 50, 100];
+  const TH_DEFAULT_SELECTED = [1, 4, 5, 6];
+  const TH_MAX_COUNT = 5000;
+  const TH_BACKGROUND_DEFAULT =
+    '본 문서는 DLP 탐지 검증을 위한 테스트 문서입니다. 아래 내용은 실제 개인정보가 아니며 임의로 생성된 값입니다.';
+
+  const thItemChipsEl    = document.getElementById('thItemChips');
+  const thCustomName     = document.getElementById('thCustomName');
+  const thCustomValue    = document.getElementById('thCustomValue');
+  const thCustomListEl   = document.getElementById('thCustomList');
+  const thCustomNoteEl   = document.getElementById('thCustomNote');
+  const thKeepCustom     = document.getElementById('thKeepCustom');
+  const thCountChipsEl   = document.getElementById('thCountChips');
+  const thCustomCount    = document.getElementById('thCustomCount');
+  const thRandomize      = document.getElementById('thRandomize');
+  const thLabelChk       = document.getElementById('thLabel');
+  const thHeaderChk      = document.getElementById('thHeader');
+  const thBackground     = document.getElementById('thBackground');
+  const thUseBackground  = document.getElementById('thUseBackground');
+  const thPlanEl         = document.getElementById('thPlan');
+  const thPreview        = document.getElementById('thPreview');
+  const thPreviewLabel   = document.getElementById('thPreviewLabel');
+  const thPreviewCounter = document.getElementById('thPreviewCounter');
+  const thFileBase       = document.getElementById('thFileBase');
+  const thStatusLine     = document.getElementById('thStatusLine');
+
+  let thSelectedItems  = [PRESETS[0].id];
+  // 사용자가 직접 넣은 값. 프리셋 예시는 형태만 맞춘 값이라 검증코드까지 보는
+  // 엔진에는 안 걸릴 수 있으므로, 실제 탐지되는 값을 그대로 넣을 수 있게 한다.
+  let thCustomItems    = [];   // { id, label, example, on }
+  let thCustomSeq      = 0;
+  let thCounts         = TH_DEFAULT_COUNTS.slice();
+  let thSelectedCounts = TH_DEFAULT_SELECTED.slice();
+  let thPreviewIndex   = 0;
+  let thFolderCounter  = 0;
+
+  thBackground.value = TH_BACKGROUND_DEFAULT;
+
+  function thSetStatus(msg, kind){
+    thStatusLine.textContent = msg;
+    thStatusLine.className = 'status-line' + (kind ? ' ' + kind : '');
+  }
+
+  function thNum(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  // 예시값의 형태(자릿수·기호·영문 위치)는 그대로 두고 값만 바꿔, 건마다
+  // 서로 다른 값이 들어가게 한다. DLP가 동일 값을 1건으로 합쳐 세는 경우를
+  // 피하기 위한 옵션이다. 검증코드(체크섬)까지 맞추지는 않는다.
+  function thRandomizeValue(example){
+    return tokenize(example).map(t => {
+      if (t.type === 'digit'){
+        let out = '';
+        for (let i = 0; i < t.text.length; i++) out += String(Math.floor(Math.random() * 10));
+        return out;
+      }
+      if (t.type === 'alpha'){
+        let out = '';
+        for (let i = 0; i < t.text.length; i++){
+          const c = t.text[i];
+          const base = (c === c.toLowerCase()) ? 97 : 65;
+          out += String.fromCharCode(base + Math.floor(Math.random() * 26));
+        }
+        return out;
+      }
+      return t.text;
+    }).join('');
+  }
+
+  function thActiveItems(){
+    const picked = PRESETS.filter(p => thSelectedItems.includes(p.id))
+      .map(p => ({ id:p.id, label:p.label, example:p.example, custom:false }));
+    const custom = thCustomItems.filter(c => c.on)
+      .map(c => ({ id:c.id, label:c.label, example:c.example, custom:true }));
+    const all = picked.concat(custom);
+    return all.length ? all : [{ id:PRESETS[0].id, label:PRESETS[0].label, example:PRESETS[0].example, custom:false }];
+  }
+
+  function thValueFor(item){
+    // 직접 입력한 값은 기본적으로 손대지 않는다. 형식만 맞춘 난수로 바꾸면
+    // 검증코드가 깨져 "실제 탐지되는 값"이라는 전제가 무너지기 때문이다.
+    if (item.custom && thKeepCustom.checked) return item.example;
+    return thRandomize.checked ? thRandomizeValue(item.example) : item.example;
+  }
+
+  function thRenderCustomList(){
+    thCustomListEl.innerHTML = '';
+    if (!thCustomItems.length){
+      const empty = document.createElement('div');
+      empty.className = 'visually-empty';
+      empty.style.fontSize = '13px';
+      empty.style.color = 'var(--text-muted)';
+      empty.textContent = '추가한 값이 여기에 표시됩니다. 실제 탐지되는 값을 그대로 붙여넣으세요.';
+      thCustomListEl.appendChild(empty);
+      return;
+    }
+    thCustomItems.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'sample-item th-custom-row';
+
+      const use = document.createElement('label');
+      use.className = 'checkline';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = item.on;
+      chk.addEventListener('change', () => {
+        item.on = chk.checked;
+        thRenderAll();
+      });
+      use.appendChild(chk);
+      use.appendChild(document.createTextNode(' 사용'));
+
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = item.label;
+
+      const val = document.createElement('span');
+      val.className = 'val';
+      val.textContent = item.example;
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn ghost sm';
+      del.textContent = '삭제';
+      del.addEventListener('click', () => {
+        thCustomItems = thCustomItems.filter(c => c.id !== item.id);
+        thRenderCustomList();
+        thRenderAll();
+      });
+
+      row.appendChild(use);
+      row.appendChild(tag);
+      row.appendChild(val);
+      row.appendChild(del);
+      thCustomListEl.appendChild(row);
+    });
+  }
+
+  function thAddCustomItems(){
+    const rawName = thCustomName.value.trim();
+    const raw = thCustomValue.value;
+    const values = raw.split(/\r?\n/).map(v => v.trim()).filter(v => v !== '');
+    if (!values.length){
+      showToast('추가할 값을 입력해주세요.', 'err');
+      return;
+    }
+    values.forEach(v => {
+      thCustomSeq++;
+      thCustomItems.push({
+        id: 'custom_' + thCustomSeq,
+        label: rawName || '직접 입력',
+        example: v,
+        on: true,
+      });
+    });
+    thCustomValue.value = '';
+    thRenderCustomList();
+    thRenderAll();
+    showToast(values.length + '개 값을 추가했습니다.', 'ok');
+  }
+
+  function thBuildText(count){
+    const items = thActiveItems();
+    const useBg = thUseBackground.checked;
+    const bg = thBackground.value.trim();
+    const lines = [];
+    if (thHeaderChk.checked){
+      lines.push('[임계치 테스트] 민감정보 ' + thNum(count) + '건');
+      lines.push('');
+    }
+    if (useBg && bg) lines.push(bg);
+    for (let i = 0; i < count; i++){
+      const item = items[i % items.length];
+      const value = thValueFor(item);
+      const no = String(i + 1).padStart(String(count).length, '0');
+      lines.push(thLabelChk.checked ? (no + '. ' + item.label + ': ' + value) : value);
+      if (useBg && bg && (i + 1) % 5 === 0 && i + 1 < count) lines.push(bg);
+    }
+    return lines.join('\n');
+  }
+
+  function thSortedCounts(){
+    return thSelectedCounts.slice().sort((a, b) => a - b);
+  }
+
+  function thRenderChips(){
+    thItemChipsEl.innerHTML = '';
+    PRESETS.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (thSelectedItems.includes(p.id) ? ' active' : '');
+      b.textContent = p.label;
+      b.addEventListener('click', () => {
+        if (thSelectedItems.includes(p.id)){
+          const hasCustom = thCustomItems.some(c => c.on);
+          if (thSelectedItems.length === 1 && !hasCustom){
+            showToast('기본 항목 또는 직접 입력 값을 최소 하나 이상 선택해야 합니다.', 'err');
+            return;
+          }
+          thSelectedItems = thSelectedItems.filter(id => id !== p.id);
+        } else {
+          thSelectedItems.push(p.id);
+        }
+        thRenderChips();
+        thRenderAll();
+      });
+      thItemChipsEl.appendChild(b);
+    });
+
+    thCountChipsEl.innerHTML = '';
+    thCounts.forEach(n => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (thSelectedCounts.includes(n) ? ' active' : '');
+      b.textContent = thNum(n) + '건';
+      b.addEventListener('click', () => {
+        if (thSelectedCounts.includes(n)) thSelectedCounts = thSelectedCounts.filter(v => v !== n);
+        else thSelectedCounts.push(n);
+        thPreviewIndex = 0;
+        thRenderChips();
+        thRenderAll();
+      });
+      thCountChipsEl.appendChild(b);
+    });
+  }
+
+  function thRenderAll(){
+    const counts = thSortedCounts();
+
+    // 직접 입력 값을 그대로 쓰는 경우, 건수가 값 개수보다 많으면 같은 값이
+    // 반복된다. 중복을 1건으로 합산하는 엔진에서는 실제 검출 건수가 달라지므로
+    // 그 점을 눈에 보이게 알려준다.
+    const activeCustom = thCustomItems.filter(c => c.on).length;
+    const maxCount = counts.length ? counts[counts.length - 1] : 0;
+    if (activeCustom && thKeepCustom.checked && maxCount > activeCustom){
+      thCustomNoteEl.textContent =
+        '직접 입력 값 ' + activeCustom + '개가 반복 사용됩니다. 동일 값을 1건으로 합산하는 엔진에서는 검출 건수가 ' +
+        activeCustom + '건으로 잡힐 수 있으니, 건수만큼 값을 더 넣거나 "직접 입력 값은 그대로 사용"을 해제하세요.';
+      thCustomNoteEl.className = 'status-line warn';
+    } else {
+      thCustomNoteEl.textContent = '';
+      thCustomNoteEl.className = 'status-line';
+    }
+
+    thPlanEl.innerHTML = '';
+    if (!counts.length){
+      const empty = document.createElement('div');
+      empty.className = 'th-plan-item empty';
+      empty.textContent = '건수를 하나 이상 선택하세요.';
+      thPlanEl.appendChild(empty);
+    } else {
+      const base = thFileBase.value.trim() || 'threshold_test';
+      counts.forEach(n => {
+        const el = document.createElement('div');
+        el.className = 'th-plan-item';
+        el.textContent = base + '_' + n + '건';
+        thPlanEl.appendChild(el);
+      });
+    }
+
+    if (!counts.length){
+      thPreview.value = '';
+      thPreviewLabel.textContent = '—';
+      thPreviewCounter.textContent = '0자 · 0줄';
+      return;
+    }
+    if (thPreviewIndex >= counts.length) thPreviewIndex = 0;
+    if (thPreviewIndex < 0) thPreviewIndex = counts.length - 1;
+    const n = counts[thPreviewIndex];
+    const text = thBuildText(n);
+    thPreview.value = text;
+    thPreviewLabel.textContent = thNum(n) + '건 (' + (thPreviewIndex + 1) + '/' + counts.length + ')';
+    thPreviewCounter.textContent =
+      thNum(text.length) + '자 · ' + thNum(text.split('\n').length) + '줄';
+  }
+
+  document.getElementById('thPrevBtn').addEventListener('click', () => {
+    thPreviewIndex--; thRenderAll();
+  });
+  document.getElementById('thNextBtn').addEventListener('click', () => {
+    thPreviewIndex++; thRenderAll();
+  });
+
+  [thRandomize, thKeepCustom, thLabelChk, thHeaderChk, thUseBackground].forEach(el => {
+    el.addEventListener('change', thRenderAll);
+  });
+
+  document.getElementById('thCustomAddBtn').addEventListener('click', thAddCustomItems);
+  thCustomName.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ e.preventDefault(); thAddCustomItems(); }
+  });
+  // 값 칸은 여러 줄 입력을 받아야 하므로 Enter는 줄바꿈으로 두고,
+  // Ctrl(⌘)+Enter일 때만 바로 추가한다.
+  thCustomValue.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); thAddCustomItems(); }
+  });
+  thBackground.addEventListener('input', thRenderAll);
+  thFileBase.addEventListener('input', thRenderAll);
+
+  function thAddCustomCount(){
+    const n = parseInt(String(thCustomCount.value).replace(/[,\s건]/g, ''), 10);
+    if (!Number.isFinite(n) || n < 1){
+      showToast('1 이상의 숫자를 입력해주세요.', 'err');
+      return;
+    }
+    if (n > TH_MAX_COUNT){
+      showToast('한 파일에 최대 ' + thNum(TH_MAX_COUNT) + '건까지 넣을 수 있습니다.', 'err');
+      return;
+    }
+    if (!thCounts.includes(n)){
+      thCounts.push(n);
+      thCounts.sort((a, b) => a - b);
+    }
+    if (!thSelectedCounts.includes(n)) thSelectedCounts.push(n);
+    thCustomCount.value = '';
+    thRenderChips();
+    thRenderAll();
+  }
+  document.getElementById('thCustomCountBtn').addEventListener('click', thAddCustomCount);
+  thCustomCount.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ e.preventDefault(); thAddCustomCount(); }
+  });
+
+  document.getElementById('thCopyBtn').addEventListener('click', async () => {
+    if (!thPreview.value){
+      showToast('생성된 본문이 없습니다.', 'err');
+      return;
+    }
+    const ok = await copyText(thPreview.value);
+    if (ok) showToast('미리보기 본문을 클립보드에 복사했습니다.', 'ok');
+    else showToast('클립보드 복사에 실패했습니다. 직접 선택해 복사해주세요.', 'err');
+  });
+
+  document.getElementById('thSendBtn').addEventListener('click', () => {
+    if (!thPreview.value){
+      showToast('생성된 본문이 없습니다.', 'err');
+      return;
+    }
+    setBodyValue(thPreview.value);
+    activateTab('pattern');
+    showToast('민감정보 세부 설정 탭의 문서 본문으로 보냈습니다.', 'ok');
+  });
+
+  // 형식 체크박스 — 패턴 탭과 동일한 형식 목록을 쓰되 선택 상태는 따로 둔다.
+  const thFormatInputs = {};
+  [['thFormatChecksMain', MAIN_FORMATS], ['thFormatChecksImage', IMAGE_FORMATS]].forEach(([containerId, formats]) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    formats.forEach(ext => {
+      const label = document.createElement('label');
+      label.className = 'checkline';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = ext;
+      if (ext === 'docx') input.checked = true;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + ext.toUpperCase()));
+      container.appendChild(label);
+      thFormatInputs[ext] = input;
+    });
+  });
+
+  function thSelectedFormats(){
+    return FORMATS.filter(ext => thFormatInputs[ext] && thFormatInputs[ext].checked);
+  }
+
+  document.getElementById('thDownloadZipBtn').addEventListener('click', async () => {
+    const counts = thSortedCounts();
+    const exts = thSelectedFormats();
+    if (!counts.length){
+      thSetStatus('건수를 하나 이상 선택해주세요.', 'err');
+      return;
+    }
+    if (!exts.length){
+      thSetStatus('파일 형식을 하나 이상 선택해주세요.', 'err');
+      return;
+    }
+
+    const base = thFileBase.value.trim() || 'threshold_test';
+    const zipName = (thFolderCounter === 0 ? 'threshold_set' : 'threshold_set' + thFolderCounter) + '.zip';
+
+    // 저장 위치는 클릭 직후(사용자 조작이 살아 있을 때) 먼저 물어본다.
+    const pick = await getSaveHandle(zipName, 'zip');
+    if (pick.cancelled){
+      thSetStatus('저장을 취소했습니다.', null);
+      return;
+    }
+
+    thSetStatus('건수별 파일 생성 중... (총 ' + (counts.length * exts.length) + '개)', null);
+    try {
+      const zip = new JSZip();
+      for (const n of counts){
+        const text = thBuildText(n);
+        for (const ext of exts){
+          const name = base + '_' + n + '건.' + ext;
+          const blob = await genBlobForExt(ext, text, base + '_' + n + '건');
+          zip.file(name, blob);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type:'blob' });
+      thFolderCounter++;
+      const summary = counts.map(n => n + '건').join(', ') + ' × ' + exts.map(e => e.toUpperCase()).join(', ');
+
+      if (pick.handle){
+        const writable = await pick.handle.createWritable();
+        await writable.write(zipBlob);
+        await writable.close();
+        thSetStatus((pick.handle.name || zipName) + ' 저장을 완료했습니다. (' + summary + ')', 'ok');
+        return;
+      }
+      legacyDownload(zipBlob, zipName);
+      thSetStatus('"' + zipName + '" 압축파일로 저장했습니다. (' + summary + ')', 'ok');
+    } catch(err){
+      console.error(err);
+      thSetStatus('파일 생성 중 오류가 발생했습니다: ' + err.message, 'err');
+    }
+  });
+
+  thRenderChips();
+  thRenderCustomList();
+  thRenderAll();
+
+  // ---------------------------------------------------------------------
+  // Tabs
+  // ---------------------------------------------------------------------
+  const TAB_PANELS = {
+    pattern:   document.getElementById('tabPanelPattern'),
+    longform:  document.getElementById('tabPanelLongform'),
+    threshold: document.getElementById('tabPanelThreshold'),
+  };
+  const TAB_BUTTONS = {
+    pattern:   document.getElementById('tabBtnPattern'),
+    longform:  document.getElementById('tabBtnLongform'),
+    threshold: document.getElementById('tabBtnThreshold'),
+  };
+  function activateTab(name){
+    Object.keys(TAB_PANELS).forEach(key => {
+      const isActive = key === name;
+      TAB_PANELS[key].hidden = !isActive;
+      TAB_BUTTONS[key].classList.toggle('active', isActive);
+      TAB_BUTTONS[key].setAttribute('aria-selected', String(isActive));
+    });
+  }
+  Object.keys(TAB_BUTTONS).forEach(key => {
+    TAB_BUTTONS[key].addEventListener('click', () => activateTab(key));
   });
 
   // initial render
