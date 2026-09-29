@@ -11,10 +11,10 @@
 /* Layout: left GNB (create + ordered project list) · right: selected project page with tabs. */
 :root{
   /* 연한 딸기 우유: 우윳빛 분홍 바탕 + 딸기색 포인트 */
-  --bg:#FFF6F7; --surface:#FFFFFF; --surface-2:#FCEBEF; --side:#FDEEF1; --border:#F3D9DF;
-  --text:#3A2A2E; --text-dim:#6F555B; --text-faint:#A48A90;
-  --accent:#C94F6D; --accent-strong:#A53C58; --accent-tint:#FDE2E9; --danger:#B03A2E; --danger-tint:#FBE3DF;
-  --mark:#FFD6E0;
+  --bg:#FFFAFB; --surface:#FFFFFF; --surface-2:#FDF2F5; --side:#FFF4F6; --border:#F6E4E8;
+  --text:#3A2A2E; --text-dim:#6F585D; --text-faint:#A89398;
+  --accent:#CF5E7A; --accent-strong:#AD4561; --accent-tint:#FEEDF1; --danger:#B03A2E; --danger-tint:#FCEAE7;
+  --mark:#FFE3EA;
   --shadow:0 1px 2px rgba(120,40,60,.06),0 8px 24px -14px rgba(120,40,60,.18);
   --c-gray-bg:#EEEEE8; --c-gray-fg:#4A524C;
   --c-green-bg:#E1F0E8; --c-green-fg:#1D6B4F;
@@ -23,7 +23,7 @@
   --c-orange-bg:#FBE7D8; --c-orange-fg:#9A4A17;
   --c-red-bg:#F8E1DE; --c-red-fg:#9E3527;
   --c-purple-bg:#ECE5F6; --c-purple-fg:#5D3F8E;
-  --c-pink-bg:#FCE3EA; --c-pink-fg:#A53C58;
+  --c-pink-bg:#FDEBF0; --c-pink-fg:#AD4561;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   --serif:'Noto Serif KR',ui-serif,Georgia,serif;
   --sans:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',ui-sans-serif,system-ui,sans-serif;
@@ -274,7 +274,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
       <div class="search-wrap">
         <div class="search">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
-          <input id="q" type="search" placeholder="이 프로젝트에서 검색 (탭 · 하위 탭 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
+          <input id="q" type="text" enterkeyhint="search" placeholder="이 프로젝트에서 검색 (탭 · 하위 탭 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
           <span class="qcount" id="qcount"></span>
           <button class="qclear" id="qclear" type="button" aria-label="검색어 지우기" hidden>✕</button>
         </div>
