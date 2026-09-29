@@ -62,7 +62,24 @@ button{cursor:pointer}
 .btn.ghost:hover{background:var(--surface-2);color:var(--text)}
 .btn.danger{color:var(--danger)}
 .btn.armed{background:var(--danger-tint);color:var(--danger)}
-.list-label{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;display:flex;justify-content:space-between;padding:0 6px}
+.list-label{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;display:flex;align-items:center;gap:6px;padding:0 0 0 6px;min-height:28px;position:relative}
+.list-label .lbl{flex:1}
+.more{border:0;background:transparent;color:var(--text-dim);width:26px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;opacity:0;flex:none;padding:0}
+.more svg{width:16px;height:16px;fill:currentColor}
+.more:hover,.more[aria-expanded="true"]{background:var(--border);color:var(--text)}
+.list-label:hover .more,.list-label:focus-within .more,.pitem:hover .more,.pitem:focus-within .more,.more[aria-expanded="true"]{opacity:1}
+@media (hover:none){.more{opacity:.7}}
+.menu{position:fixed;z-index:20;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.3);padding:4px;display:flex;flex-direction:column;text-transform:none;letter-spacing:0}
+.menu button{border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:7px;font-size:13.5px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px}
+.menu button:hover,.menu button:focus-visible{background:var(--surface-2);outline:none}
+.menu button.danger{color:var(--danger)}
+.menu svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;flex:none}
+.pin{width:12px;height:12px;flex:none;color:var(--accent);fill:currentColor}
+.group-label{font-size:11px;font-weight:600;color:var(--text-faint);padding:6px 8px 2px;letter-spacing:.04em}
+.group-gap{height:1px;background:var(--border);margin:6px 8px}
+.pitem.divider{min-height:22px}
+.pitem.divider .rule{flex:1;height:1px;background:var(--text-faint);opacity:.45;margin:0 6px}
+.pitem.divider:hover .rule{opacity:.8}
 .plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .pitem{display:flex;align-items:center;gap:2px;border-radius:8px}
 .pitem:hover,.pitem:focus-within{background:var(--surface-2)}
@@ -116,7 +133,9 @@ button{cursor:pointer}
       <input class="field" id="newName" placeholder="새 프로젝트 이름" autocomplete="off" aria-label="새 프로젝트 이름">
       <button class="btn primary" type="button" id="createBtn">만들기</button>
     </div>
-    <div class="list-label"><span>프로젝트 목록</span><span id="count"></span></div>
+    <div class="list-label"><span class="lbl">프로젝트 목록</span><span id="count"></span>
+      <button class="more" id="listMore" type="button" aria-label="프로젝트 목록 더보기" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg></button>
+    </div>
     <ul class="plist" id="plist"></ul>
     <div class="side-empty" id="sideEmpty">아직 프로젝트가 없어요.</div>
     <div class="drag-hint" id="dragHint" hidden>항목을 끌어서 순서를 바꿀 수 있어요.</div>
@@ -169,7 +188,9 @@ button{cursor:pointer}
   }
   function saveSoon(){ $('#saved').textContent = '저장 중…'; clearTimeout(saveT); saveT = setTimeout(save, 400); }
 
-  const find = id => data.projects.find(p => p.id === id);
+  const isDiv = x => x.type === 'divider';
+  const projectsOnly = () => data.projects.filter(x => !isDiv(x));
+  const find = id => data.projects.find(p => p.id === id && !isDiv(p));
   function armed(btn, label, fn){
     if (btn.dataset.armed){ delete btn.dataset.armed; btn.classList.remove('armed'); btn.textContent = btn.dataset.old; fn(); return; }
     btn.dataset.old = btn.textContent; btn.dataset.armed = '1'; btn.textContent = label; btn.classList.add('armed');
@@ -190,60 +211,142 @@ button{cursor:pointer}
   }
   window.addEventListener('hashchange', route);
 
-  // ---------- GNB ----------
-  function renderGnb(){
-    const ul = $('#plist'); ul.replaceChildren();
-    const list = data.projects;
-    $('#sideEmpty').hidden = list.length > 0;
-    $('#dragHint').hidden = list.length < 2;
-    $('#count').textContent = list.length ? `${list.length}개` : '';
-    list.forEach((p, i) => {
-      const li = document.createElement('li'); li.className = 'pitem' + (cur && cur.id === p.id ? ' active' : '');
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'pbtn';
-      if (cur && cur.id === p.id) b.setAttribute('aria-current', 'page');
-      const no = document.createElement('span'); no.className = 'no'; no.textContent = i + 1;
-      const name = document.createElement('span'); name.className = 'name'; name.textContent = p.name || '제목 없음';
-      b.append(no, name);
-      b.addEventListener('click', () => { location.hash = 'p-' + p.id; });
-
-      const grip = document.createElement('span'); grip.className = 'grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 변경';
-      grip.setAttribute('aria-hidden', 'true');
-      li.dataset.id = p.id;
-      li.addEventListener('pointerdown', e => startDrag(e, li));
-      // 키보드: Alt + ↑/↓ 로도 이동
-      b.addEventListener('keydown', e => {
-        if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-        e.preventDefault(); const j = i + (e.key === 'ArrowUp' ? -1 : 1);
-        if (j < 0 || j >= list.length) return;
-        [list[i], list[j]] = [list[j], list[i]]; save(); renderGnb();
-        document.querySelectorAll('#plist .pbtn')[j]?.focus();
-      });
-      li.append(grip, b); ul.append(li);
+  // ---------- 더보기 메뉴 ----------
+  const MORE_SVG = '<svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>';
+  const ICONS = {
+    divider: '<svg viewBox="0 0 16 16"><path d="M2 8h12"/></svg>',
+    pin: '<svg viewBox="0 0 16 16"><path d="M6 2h4l-.6 4 2.6 2.4H4L6.6 6z"/><path d="M8 8.4V14"/></svg>',
+    unpin: '<svg viewBox="0 0 16 16"><path d="M6 2h4l-.6 4 2.6 2.4H4L6.6 6z"/><path d="M8 8.4V14M2 2l12 12"/></svg>',
+    trash: '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>'
+  };
+  let openMenu = null;
+  function closeMenu(){ if (!openMenu) return; openMenu.btn.setAttribute('aria-expanded','false'); openMenu.el.remove(); openMenu = null; }
+  function showMenu(btn, items){
+    const same = openMenu && openMenu.btn === btn; closeMenu(); if (same) return;
+    const el = document.createElement('div'); el.className = 'menu'; el.setAttribute('role','menu');
+    items.forEach(it => {
+      const b = document.createElement('button'); b.type='button'; b.setAttribute('role','menuitem'); if (it.danger) b.className='danger';
+      b.innerHTML = ICONS[it.icon] || ''; b.append(document.createTextNode(it.label));
+      b.addEventListener('click', e => { e.stopPropagation(); closeMenu(); it.run(); });
+      el.append(b);
     });
+    document.body.append(el);
+    const r = btn.getBoundingClientRect(), w = el.offsetWidth, hgt = el.offsetHeight;
+    let left = Math.min(r.left, window.innerWidth - w - 8), top = r.bottom + 4;
+    if (top + hgt > window.innerHeight - 8) top = r.top - hgt - 4;
+    el.style.left = Math.max(8, left) + 'px'; el.style.top = Math.max(8, top) + 'px';
+    btn.setAttribute('aria-expanded','true');
+    openMenu = { btn, el };
+    el.querySelector('button')?.focus();
   }
-  // ---------- 드래그 앤 드롭 (마우스: 줄 어디서나 / 터치: ⋮⋮ 손잡이) ----------
+  document.addEventListener('pointerdown', e => { if (openMenu && !openMenu.el.contains(e.target) && !openMenu.btn.contains(e.target)) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && openMenu){ const b = openMenu.btn; closeMenu(); b.focus(); } });
+  window.addEventListener('resize', closeMenu);
+  $('.gnb').addEventListener('scroll', closeMenu);
+
+  // 프로젝트 목록 제목 옆 더보기
+  $('#listMore').addEventListener('click', e => {
+    e.stopPropagation();
+    showMenu(e.currentTarget, [{ icon:'divider', label:'구분선 추가', run: () => { data.projects.push({ id: uid('d_'), type:'divider' }); save(); renderGnb(); } }]);
+  });
+
+  // 항목별 메뉴: 설정 상태에 따라 노출 메뉴가 달라짐
+  function itemMenu(x){
+    if (isDiv(x)) return [{ icon:'trash', label:'구분선 삭제', danger:true, run: () => { data.projects = data.projects.filter(y => y !== x); save(); renderGnb(); } }];
+    return x.pinned
+      ? [{ icon:'unpin', label:'상단 고정 해제', run: () => { delete x.pinned; save(); renderGnb(); } }]
+      : [{ icon:'pin', label:'상단 고정', run: () => { x.pinned = true; save(); renderGnb(); } }];
+  }
+
+  // ---------- GNB ----------
+  // 표시 순서: 상단 고정 프로젝트(고정 그룹) → 나머지 프로젝트와 구분선. 고정 해제 시 원래 자리로 돌아감.
+  const groupOf = x => (!isDiv(x) && x.pinned) ? 'pinned' : 'rest';
+  function renderGnb(){
+    closeMenu();
+    const ul = $('#plist'); ul.replaceChildren();
+    const projs = projectsOnly();
+    $('#sideEmpty').hidden = data.projects.length > 0;
+    $('#dragHint').hidden = data.projects.length < 2;
+    $('#count').textContent = projs.length ? `${projs.length}개` : '';
+    const pinned = data.projects.filter(x => groupOf(x) === 'pinned');
+    const rest = data.projects.filter(x => groupOf(x) === 'rest');
+    let no = 0;
+    if (pinned.length){
+      ul.append(Object.assign(document.createElement('li'), { className:'group-label', textContent:'고정됨' }));
+      pinned.forEach(x => ul.append(itemEl(x, ++no, 'pinned')));
+      if (rest.length) ul.append(Object.assign(document.createElement('li'), { className:'group-gap' }));
+    }
+    rest.forEach(x => ul.append(itemEl(x, isDiv(x) ? 0 : ++no, 'rest')));
+  }
+  function itemEl(x, no, group){
+    const li = document.createElement('li'); li.dataset.id = x.id; li.dataset.group = group;
+    const grip = document.createElement('span'); grip.className = 'grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 변경'; grip.setAttribute('aria-hidden','true');
+    const more = document.createElement('button'); more.type='button'; more.className='more'; more.innerHTML = MORE_SVG;
+    more.setAttribute('aria-haspopup','menu'); more.setAttribute('aria-expanded','false');
+    more.addEventListener('click', e => { e.stopPropagation(); showMenu(more, itemMenu(x)); });
+    more.addEventListener('pointerdown', e => e.stopPropagation());
+    li.addEventListener('pointerdown', e => startDrag(e, li));
+
+    if (isDiv(x)){
+      li.className = 'pitem divider';
+      const rule = document.createElement('span'); rule.className = 'rule';
+      more.setAttribute('aria-label','구분선 더보기');
+      li.append(grip, rule, more);
+      return li;
+    }
+    const active = cur && cur.id === x.id;
+    li.className = 'pitem' + (active ? ' active' : '');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pbtn';
+    if (active) b.setAttribute('aria-current', 'page');
+    const n = document.createElement('span'); n.className = 'no'; n.textContent = no;
+    const name = document.createElement('span'); name.className = 'name'; name.textContent = x.name || '제목 없음';
+    b.append(n, name);
+    if (x.pinned){ const s = document.createElementNS('http://www.w3.org/2000/svg','svg'); s.setAttribute('viewBox','0 0 16 16'); s.setAttribute('class','pin'); s.setAttribute('aria-label','고정됨'); s.innerHTML = '<path d="M6 1.5h4l-.6 4.2 2.8 2.6H3.8l2.8-2.6z"/><rect x="7.3" y="8" width="1.4" height="6.5" rx=".7"/>'; b.append(s); }
+    b.addEventListener('click', () => { location.hash = 'p-' + x.id; });
+    b.addEventListener('keydown', e => { // 키보드: Alt + ↑/↓ 로 같은 그룹 안에서 이동
+      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const g = data.projects.filter(y => groupOf(y) === group);
+      const i = g.indexOf(x), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      if (j < 0 || j >= g.length) return;
+      [g[i], g[j]] = [g[j], g[i]]; applyGroupOrder(group, g); save(); renderGnb();
+      document.querySelector(`#plist li[data-id="${x.id}"] .pbtn`)?.focus();
+    });
+    more.setAttribute('aria-label', `${x.name || '프로젝트'} 더보기`);
+    li.append(grip, b, more);
+    return li;
+  }
+  // 한 그룹의 새 순서를 전체 배열 중 그 그룹이 차지하던 자리에 채워 넣음 (다른 그룹 위치는 그대로)
+  function applyGroupOrder(group, ordered){
+    let k = 0;
+    data.projects = data.projects.map(y => groupOf(y) === group ? ordered[k++] : y);
+  }
+
+  // ---------- 드래그 앤 드롭 (마우스: 줄 어디서나 / 터치: ⋮⋮ 손잡이) — 같은 그룹 안에서만 ----------
   let drag = null, suppressClick = false;
   function startDrag(e, li){
     if (e.button !== 0) return;
     const onGrip = e.target.closest('.grip');
     if (e.pointerType !== 'mouse' && !onGrip) return;
-    drag = { li, id: li.dataset.id, startY: e.clientY, active: false, pid: e.pointerId };
+    drag = { li, group: li.dataset.group, startY: e.clientY, active: false, pid: e.pointerId };
     if (onGrip) e.preventDefault();
   }
   window.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.pid) return;
-    const dy = e.clientY - drag.startY;
     if (!drag.active){
-      if (Math.abs(dy) < 5) return;
+      if (Math.abs(e.clientY - drag.startY) < 5) return;
+      closeMenu();
       drag.active = true; drag.li.classList.add('dragging'); $('#plist').classList.add('sorting');
     }
     e.preventDefault();
     const ul = $('#plist');
-    const others = [...ul.children].filter(x => x !== drag.li);
+    const same = [...ul.children].filter(x => x.dataset.group === drag.group);
+    const others = same.filter(x => x !== drag.li);
     let before = null;
     for (const o of others){ const r = o.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2){ before = o; break; } }
-    if (before !== drag.li.nextElementSibling) ul.insertBefore(drag.li, before);
-    [...ul.children].forEach((x, k) => { const n = x.querySelector('.no'); if (n) n.textContent = k + 1; });
+    if (before){ if (before !== drag.li.nextElementSibling) ul.insertBefore(drag.li, before); }
+    else { const last = others[others.length - 1]; if (last && last.nextElementSibling !== drag.li) last.after(drag.li); }
+    let n = 0; [...ul.children].forEach(x => { const el = x.querySelector('.no'); if (el) el.textContent = ++n; });
   }, { passive: false });
   function endDrag(){
     if (!drag) return;
@@ -251,9 +354,9 @@ button{cursor:pointer}
     if (!d.active) return;
     suppressClick = true; setTimeout(() => suppressClick = false, 0);
     d.li.classList.remove('dragging'); $('#plist').classList.remove('sorting');
-    const order = [...$('#plist').children].map(x => x.dataset.id);
-    const byId = new Map(data.projects.map(p => [p.id, p]));
-    data.projects = order.map(id => byId.get(id)).filter(Boolean);
+    const byId = new Map(data.projects.map(y => [y.id, y]));
+    const ordered = [...$('#plist').children].filter(x => x.dataset.group === d.group).map(x => byId.get(x.dataset.id)).filter(Boolean);
+    applyGroupOrder(d.group, ordered);
     save(); renderGnb();
   }
   window.addEventListener('pointerup', endDrag);
@@ -279,7 +382,7 @@ button{cursor:pointer}
   // ---------- 본문 ----------
   function showWelcome(){
     $('#page').hidden = true; $('#welcome').hidden = false;
-    const none = data.projects.length === 0;
+    const none = projectsOnly().length === 0;
     $('#welcomeTitle').textContent = none ? '첫 프로젝트를 만들어 보세요' : '프로젝트를 선택하세요';
     $('#welcomeText').textContent = none ? '왼쪽 위에 프로젝트 이름을 적고 만들기를 누르면 목록에 추가되고 바로 열려요.' : '왼쪽 목록에서 프로젝트를 누르면 여기에 탭별 내용이 열려요.';
   }
