@@ -145,6 +145,12 @@ button{cursor:pointer}
 .subadd{border:1px dashed var(--border);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text-faint)}
 .subadd:hover{color:var(--accent);border-color:var(--accent)}
 .subtools{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding-left:2px;border-left:2px solid var(--accent-tint);padding-left:10px}
+.lv3{display:flex;flex-direction:column;gap:10px;margin-left:18px;padding-left:12px;border-left:1px dashed var(--border)}
+.lv3 .subbar{margin-top:0}
+.lv3 .subtab{font-size:12.5px;padding:3px 10px}
+.lv3 .subadd{font-size:12.5px;padding:3px 10px}
+.lv3 .subtools{border-left:0;padding-left:0}
+.lv3 .subname{font-size:14px}
 .subname{border:0;background:transparent;outline:none;font-weight:600;font-size:15px;padding:2px 0;min-width:0;flex:1;color:var(--text-dim)}
 .saved{font-size:12.5px;color:var(--text-faint)}
 .editor{width:100%;min-height:360px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:0;overflow:hidden}
@@ -260,6 +266,16 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
       <div class="subtools" id="subTools" hidden>
         <input class="subname" id="subName" aria-label="하위 탭 이름" placeholder="하위 탭 이름">
         <button class="btn ghost danger" id="delSub" type="button">하위 탭 삭제</button>
+      </div>
+      <div class="lv3" id="lv3">
+        <div class="subbar" id="sub2Bar">
+          <div class="subtabs" role="tablist" aria-label="2단계 하위 탭" id="subtabs2"></div>
+          <button class="subadd" id="addSub2" type="button">+ 하위 탭</button>
+        </div>
+        <div class="subtools" id="sub2Tools" hidden>
+          <input class="subname" id="sub2Name" aria-label="2단계 하위 탭 이름" placeholder="하위 탭 이름">
+          <button class="btn ghost danger" id="delSub2" type="button">하위 탭 삭제</button>
+        </div>
       </div>
       <textarea class="editor" id="editor" placeholder="여기에 알아본 내용을 자유롭게 적으세요. 입력하면 자동으로 저장돼요."></textarea>
       <div class="pagefoot"><button class="btn ghost danger" id="delProject" type="button">프로젝트 삭제</button></div>
@@ -526,42 +542,58 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.6}
     bar.append(add);
     renderSubs();
   }
-  // ---------- 하위 탭 ----------
+  // ---------- 하위 탭 (상위 탭 → 하위 탭 → 하위 탭, 최대 3단계) ----------
   const subsOf = t => t && Array.isArray(t.subs) ? t.subs : [];
   const activeSub = t => { const l = subsOf(t); return l.find(x => x.id === t.activeSub) || l[0] || null; };
-  const target = () => { const t = activeTab(); return t ? (activeSub(t) || t) : null; }; // 본문을 적을 대상
+  const lv2Parent = () => activeTab();
+  const lv3Parent = () => activeSub(activeTab()); // 선택된 하위 탭
+  // 본문을 적을 대상: 가장 깊이 선택된 탭
+  const target = () => { const t = activeTab(); if (!t) return null; const s1 = activeSub(t); if (!s1) return t; return activeSub(s1) || s1; };
+
+  const LEVELS = [
+    { parent: lv2Parent, bar: 'subBar', list: 'subtabs', add: 'addSub', tools: 'subTools', name: 'subName', del: 'delSub', prefix: '하위 탭 ' },
+    { parent: lv3Parent, bar: 'sub2Bar', list: 'subtabs2', add: 'addSub2', tools: 'sub2Tools', name: 'sub2Name', del: 'delSub2', prefix: '하위 탭 ' },
+  ];
   function renderSubs(){
-    const t = activeTab(), wrap = $('#subtabs'); wrap.replaceChildren();
-    $('#subBar').hidden = !t; if (!t) { $('#subTools').hidden = true; return; }
-    const l = subsOf(t), as = activeSub(t);
-    l.forEach(x => {
-      const b = document.createElement('button'); b.type='button'; b.className='subtab'; b.setAttribute('role','tab');
-      b.setAttribute('aria-selected', String(!!as && x.id === as.id)); b.textContent = x.name || '제목 없음';
-      b.addEventListener('click', () => { t.activeSub = x.id; save(); renderSubs(); loadTab(); });
-      wrap.append(b);
+    LEVELS.forEach((L, i) => {
+      const par = L.parent(), wrap = $('#' + L.list); wrap.replaceChildren();
+      if (i === 1) $('#lv3').hidden = !par;
+      $('#' + L.bar).hidden = !par;
+      if (!par){ $('#' + L.tools).hidden = true; return; }
+      const l = subsOf(par), as = activeSub(par);
+      l.forEach(x => {
+        const b = document.createElement('button'); b.type='button'; b.className='subtab'; b.setAttribute('role','tab');
+        b.setAttribute('aria-selected', String(!!as && x.id === as.id)); b.textContent = x.name || '제목 없음';
+        b.addEventListener('click', () => { par.activeSub = x.id; save(); renderSubs(); loadTab(); });
+        wrap.append(b);
+      });
+      $('#' + L.tools).hidden = l.length === 0;
+      if (as) $('#' + L.name).value = as.name;
     });
-    $('#subTools').hidden = l.length === 0;
-    if (as) $('#subName').value = as.name;
   }
-  $('#addSub').addEventListener('click', () => {
-    const t = activeTab(); if (!t) return;
-    if (!Array.isArray(t.subs)) t.subs = [];
-    // 첫 하위 탭을 만들 때 탭에 적어 둔 내용은 '기본' 하위 탭으로 옮김
-    if (t.subs.length === 0 && (t.body || '').trim()) { t.subs.push({ id: uid('s_'), name: '기본', body: t.body }); t.body = ''; }
-    const x = { id: uid('s_'), name: '하위 탭 ' + (t.subs.length + 1), body: '' };
-    t.subs.push(x); t.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
-    const n = $('#subName'); n.focus(); n.select();
+  LEVELS.forEach(L => {
+    $('#' + L.add).addEventListener('click', () => {
+      const par = L.parent(); if (!par) return;
+      if (!Array.isArray(par.subs)) par.subs = [];
+      // 처음 나눌 때 이미 적어 둔 내용은 '기본' 하위 탭으로 옮김
+      if (par.subs.length === 0 && (par.body || '').trim()) { par.subs.push({ id: uid('s_'), name: '기본', body: par.body }); par.body = ''; }
+      const x = { id: uid('s_'), name: L.prefix + (par.subs.length + 1), body: '' };
+      par.subs.push(x); par.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
+      const n = $('#' + L.name); n.focus(); n.select();
+    });
+    $('#' + L.name).addEventListener('input', e => {
+      const par = L.parent(), x = par && activeSub(par); if (!x) return;
+      x.name = e.target.value; touch(); saveSoon();
+      const sel = $('#' + L.list + ' [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
+    });
+    $('#' + L.del).addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+      const par = L.parent(), x = par && activeSub(par); if (!x) return;
+      par.subs = par.subs.filter(y => y.id !== x.id); par.activeSub = par.subs[0] ? par.subs[0].id : null;
+      touch(); save(); renderSubs(); loadTab();
+    }));
   });
-  $('#subName').addEventListener('input', e => {
-    const t = activeTab(), x = t && activeSub(t); if (!x) return;
-    x.name = e.target.value; touch(); saveSoon();
-    const sel = $('#subtabs [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
-  });
-  $('#delSub').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
-    const t = activeTab(), x = t && activeSub(t); if (!x) return;
-    t.subs = t.subs.filter(y => y.id !== x.id); t.activeSub = t.subs[0] ? t.subs[0].id : null;
-    touch(); save(); renderSubs(); loadTab();
-  }));
+  // 3단계 하위 탭은 더 나눌 수 없음 (subs를 만들지 않음)
+
   function loadTab(){
     const t = activeTab();
     const has = !!t;
