@@ -605,14 +605,6 @@
 
       <div>
         <div class="copybar">
-          <span class="field-label" style="margin:0;">생성된 정규식</span>
-          <button class="btn ghost sm" id="copyRegexBtn" type="button">정규식 복사</button>
-        </div>
-        <div class="codebox" id="regexOut">&nbsp;</div>
-      </div>
-
-      <div>
-        <div class="copybar">
           <span class="field-label" style="margin:0;">샘플 문자열</span>
           <div style="display:flex; gap:8px; align-items:center;">
             <label class="checkline"><input type="checkbox" id="labelToggle" checked> 항목명 라벨 포함</label>
@@ -22421,7 +22413,6 @@ var src_default = GIFEncoder;
   const delimCustomToggle = document.getElementById('delimCustomToggle');
   const delimCustomWrap = document.getElementById('delimCustomWrap');
   const customCharsInput = document.getElementById('customChars');
-  const regexOut = document.getElementById('regexOut');
   const sampleList = document.getElementById('sampleList');
   const labelToggle = document.getElementById('labelToggle');
 
@@ -22450,17 +22441,9 @@ var src_default = GIFEncoder;
     };
   }
 
-  function highlightRegex(src){
-    return src
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/(\\d|\[A-Za-z\]|\(\?:|\)\?|\{[0-9,]+\})/g, '<span class="re-lit">$1</span>');
-  }
-
   function renderAll(){
     const tokens = tokenize(patternInput.value);
     const opts = currentOpts();
-    const regex = buildRegex(tokens, opts) || '(패턴을 입력하세요)';
-    regexOut.innerHTML = highlightRegex(regex);
 
     const samples = buildSamples(tokens, opts);
     sampleList.innerHTML = '';
@@ -22518,13 +22501,6 @@ var src_default = GIFEncoder;
       return false;
     }
   }
-
-  document.getElementById('copyRegexBtn').addEventListener('click', async () => {
-    const text = regexOut.textContent;
-    const ok = await copyText(text);
-    if (ok) showToast('정규식을 클립보드에 복사했습니다.', 'ok');
-    else showToast('클립보드 복사에 실패했습니다. 직접 선택해 복사해주세요.', 'err');
-  });
 
   document.getElementById('addAllBtn').addEventListener('click', () => {
     const tokens = tokenize(patternInput.value);
