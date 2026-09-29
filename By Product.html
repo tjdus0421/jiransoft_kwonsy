@@ -71,12 +71,15 @@ button{cursor:pointer}
 .pbtn .no{font-family:var(--mono);font-size:11.5px;color:var(--text-faint);width:18px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
 .pbtn .name{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pitem.active .pbtn .name{font-weight:700}
-.order{display:flex;gap:0;opacity:0;flex:none;padding-right:4px}
-.pitem:hover .order,.pitem:focus-within .order,.pitem.active .order{opacity:1}
-@media (hover:none){.order{opacity:1}}
-.obtn{border:0;background:transparent;color:var(--text-dim);width:26px;height:26px;border-radius:6px;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
-.obtn:hover:not(:disabled){background:var(--border);color:var(--text)}
-.obtn:disabled{opacity:.3;cursor:default}
+.grip{flex:none;width:22px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:var(--text-faint);opacity:0;cursor:grab;touch-action:none;border-radius:6px;font-size:13px;letter-spacing:-2px;user-select:none}
+.pitem:hover .grip,.pitem:focus-within .grip{opacity:1}
+@media (hover:none){.grip{opacity:.7}}
+.plist.sorting{cursor:grabbing}
+.plist.sorting .pbtn{cursor:grabbing}
+.pitem.dragging{background:var(--surface);box-shadow:0 6px 18px -6px rgba(0,0,0,.25);position:relative;z-index:2}
+.pitem.dragging .grip{opacity:1;color:var(--accent)}
+.pitem{user-select:none}
+.drag-hint{font-size:12px;color:var(--text-faint);padding:0 6px}
 .side-empty{font-size:13px;color:var(--text-faint);padding:4px 6px}
 
 /* ---------- 본문 ---------- */
@@ -116,6 +119,7 @@ button{cursor:pointer}
     <div class="list-label"><span>프로젝트 목록</span><span id="count"></span></div>
     <ul class="plist" id="plist"></ul>
     <div class="side-empty" id="sideEmpty">아직 프로젝트가 없어요.</div>
+    <div class="drag-hint" id="dragHint" hidden>항목을 끌어서 순서를 바꿀 수 있어요.</div>
   </nav>
 
   <!-- 우측 본문 -->
@@ -191,6 +195,7 @@ button{cursor:pointer}
     const ul = $('#plist'); ul.replaceChildren();
     const list = data.projects;
     $('#sideEmpty').hidden = list.length > 0;
+    $('#dragHint').hidden = list.length < 2;
     $('#count').textContent = list.length ? `${list.length}개` : '';
     list.forEach((p, i) => {
       const li = document.createElement('li'); li.className = 'pitem' + (cur && cur.id === p.id ? ' active' : '');
@@ -201,25 +206,59 @@ button{cursor:pointer}
       b.append(no, name);
       b.addEventListener('click', () => { location.hash = 'p-' + p.id; });
 
-      const ord = document.createElement('span'); ord.className = 'order';
-      const up = document.createElement('button'); up.type='button'; up.className='obtn'; up.textContent='↑'; up.title='위로'; up.setAttribute('aria-label', `${p.name} 위로 이동`); up.disabled = i === 0;
-      const dn = document.createElement('button'); dn.type='button'; dn.className='obtn'; dn.textContent='↓'; dn.title='아래로'; dn.setAttribute('aria-label', `${p.name} 아래로 이동`); dn.disabled = i === list.length - 1;
-      up.addEventListener('click', () => move(i, -1, 'up'));
-      dn.addEventListener('click', () => move(i, 1, 'down'));
-      ord.append(up, dn);
-
-      li.append(b, ord); ul.append(li);
+      const grip = document.createElement('span'); grip.className = 'grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 변경';
+      grip.setAttribute('aria-hidden', 'true');
+      li.dataset.id = p.id;
+      li.addEventListener('pointerdown', e => startDrag(e, li));
+      // 키보드: Alt + ↑/↓ 로도 이동
+      b.addEventListener('keydown', e => {
+        if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+        e.preventDefault(); const j = i + (e.key === 'ArrowUp' ? -1 : 1);
+        if (j < 0 || j >= list.length) return;
+        [list[i], list[j]] = [list[j], list[i]]; save(); renderGnb();
+        document.querySelectorAll('#plist .pbtn')[j]?.focus();
+      });
+      li.append(grip, b); ul.append(li);
     });
   }
-  function move(i, d, dir){
-    const a = data.projects, j = i + d;
-    if (j < 0 || j >= a.length) return;
-    [a[i], a[j]] = [a[j], a[i]];
-    save(); renderGnb();
-    // 연속으로 누를 수 있게 같은 버튼에 포커스 유지
-    const btns = document.querySelectorAll('#plist .pitem')[j]?.querySelectorAll('.obtn');
-    if (btns) { const t = dir === 'up' ? btns[0] : btns[1]; (t.disabled ? (dir === 'up' ? btns[1] : btns[0]) : t).focus(); }
+  // ---------- 드래그 앤 드롭 (마우스: 줄 어디서나 / 터치: ⋮⋮ 손잡이) ----------
+  let drag = null, suppressClick = false;
+  function startDrag(e, li){
+    if (e.button !== 0) return;
+    const onGrip = e.target.closest('.grip');
+    if (e.pointerType !== 'mouse' && !onGrip) return;
+    drag = { li, id: li.dataset.id, startY: e.clientY, active: false, pid: e.pointerId };
+    if (onGrip) e.preventDefault();
   }
+  window.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const dy = e.clientY - drag.startY;
+    if (!drag.active){
+      if (Math.abs(dy) < 5) return;
+      drag.active = true; drag.li.classList.add('dragging'); $('#plist').classList.add('sorting');
+    }
+    e.preventDefault();
+    const ul = $('#plist');
+    const others = [...ul.children].filter(x => x !== drag.li);
+    let before = null;
+    for (const o of others){ const r = o.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2){ before = o; break; } }
+    if (before !== drag.li.nextElementSibling) ul.insertBefore(drag.li, before);
+    [...ul.children].forEach((x, k) => { const n = x.querySelector('.no'); if (n) n.textContent = k + 1; });
+  }, { passive: false });
+  function endDrag(){
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.active) return;
+    suppressClick = true; setTimeout(() => suppressClick = false, 0);
+    d.li.classList.remove('dragging'); $('#plist').classList.remove('sorting');
+    const order = [...$('#plist').children].map(x => x.dataset.id);
+    const byId = new Map(data.projects.map(p => [p.id, p]));
+    data.projects = order.map(id => byId.get(id)).filter(Boolean);
+    save(); renderGnb();
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  document.addEventListener('click', e => { if (suppressClick && e.target.closest('#plist')){ e.stopPropagation(); e.preventDefault(); } }, true);
 
   function createProject(){
     const input = $('#newName');
