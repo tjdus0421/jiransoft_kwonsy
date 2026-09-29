@@ -185,6 +185,12 @@ button{cursor:pointer}
 @media (max-width:480px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .card{border:0;text-align:left;border-radius:9px;padding:8px 10px 9px;display:flex;flex-direction:column;gap:2px;background:var(--cbg);color:var(--cfg);transition:transform .12s;min-width:0}
 .card:hover{transform:translateY(-1px)}
+.cards .card{user-select:none;-webkit-touch-callout:none}
+.cards.sorting,.cards.sorting .card{cursor:grabbing}
+.cards .card{cursor:grab}
+.card.card-slot{opacity:.35;outline:2px dashed var(--accent);outline-offset:-2px;transform:none}
+.card-ghost{position:fixed;z-index:50;pointer-events:none;margin:0;transform:rotate(-2deg) scale(1.04);box-shadow:0 14px 30px -10px rgba(120,40,60,.4);transition:none}
+body.grabbing,body.grabbing *{cursor:grabbing!important}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 .card .chead{display:flex;align-items:flex-start;gap:5px;min-width:0}
 .card .emo{font-size:14px;line-height:1.3;flex:none}
@@ -701,12 +707,81 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   function renderCards(){
     const wrap = $('#cards'); wrap.replaceChildren();
     const cards = cur.cards || (cur.cards = []);
-    cards.forEach(c => wrap.append(cardEl(c, () => openCardView(c))));
+    cards.forEach(c => {
+      const el = cardEl(c, () => { if (!cardDrag.justDropped) openCardView(c); });
+      el.dataset.id = c.id;
+      el.addEventListener('pointerdown', e => startCardDrag(e, el));
+      el.addEventListener('keydown', e => { // 키보드: Alt + ←/→ 로 순서 이동
+        if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+        e.preventDefault(); const a = cur.cards, i = a.indexOf(c), j = i + (e.key === 'ArrowLeft' ? -1 : 1);
+        if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; touch(); save(); renderCards();
+        document.querySelector(`#cards .card[data-id="${c.id}"]`)?.focus();
+      });
+      wrap.append(el);
+    });
     wrap.hidden = cards.length === 0;
     $('#cardsZone').classList.toggle('none', cards.length === 0);
     const full = cards.length >= MAX_CARDS;
     $('#addCard').hidden = full; $('#cardLimit').hidden = !full;
   }
+  // ---------- 카드 드래그 앤 드롭 ----------
+  // 마우스·펜: 누른 채 끌기 / 터치: 0.3초 누르고 있다가 끌기. 끄는 카드가 커서를 따라다니고, 놓을 자리는 점선으로 표시.
+  const cardDrag = { el:null, pid:null, sx:0, sy:0, ox:0, oy:0, active:false, timer:null, justDropped:false, ghost:null };
+  function startCardDrag(e, el){
+    if (e.button !== 0) return;
+    const r = el.getBoundingClientRect();
+    const immediate = e.pointerType === 'mouse' || e.pointerType === 'pen';
+    Object.assign(cardDrag, { el, pid:e.pointerId, sx:e.clientX, sy:e.clientY, ox:e.clientX - r.left, oy:e.clientY - r.top, active:false, armed: immediate, touch: !immediate });
+    clearTimeout(cardDrag.timer);
+    if (!immediate) cardDrag.timer = setTimeout(() => { if (cardDrag.el === el){ cardDrag.armed = true; beginCardDrag(cardDrag.sx, cardDrag.sy); } }, 300);
+  }
+  function beginCardDrag(x, y){
+    const d = cardDrag, r = d.el.getBoundingClientRect();
+    d.active = true;
+    const g = d.el.cloneNode(true); g.classList.add('card-ghost'); g.removeAttribute('data-id');
+    g.style.width = r.width + 'px'; g.style.height = r.height + 'px';
+    document.body.append(g); d.ghost = g; moveGhost(x, y);
+    d.el.classList.add('card-slot'); $('#cards').classList.add('sorting'); document.body.classList.add('grabbing');
+  }
+  function moveGhost(x, y){ const d = cardDrag; if (d.ghost){ d.ghost.style.left = (x - d.ox) + 'px'; d.ghost.style.top = (y - d.oy) + 'px'; } }
+  window.addEventListener('pointermove', e => {
+    const d = cardDrag; if (!d.el || e.pointerId !== d.pid) return;
+    const dist = Math.hypot(e.clientX - d.sx, e.clientY - d.sy);
+    if (!d.active){
+      if (d.touch && !d.armed){ if (dist > 8){ clearTimeout(d.timer); d.el = null; } return; } // 길게 누르기 전 움직이면 스크롤로 처리
+      if (dist < 4) return;
+      beginCardDrag(e.clientX, e.clientY);
+    }
+    e.preventDefault();
+    moveGhost(e.clientX, e.clientY);
+    // 가장 가까운 카드를 찾아 그 앞/뒤에 자리 표시
+    const wrap = $('#cards'), others = [...wrap.children].filter(x => x !== d.el);
+    if (!others.length) return;
+    let best = null, bd = Infinity;
+    others.forEach(o => { const r = o.getBoundingClientRect(); const dd = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2)); if (dd < bd){ bd = dd; best = o; } });
+    const r = best.getBoundingClientRect();
+    const after = (e.clientY > r.bottom) || (e.clientY >= r.top && e.clientX > r.left + r.width / 2);
+    const ref = after ? best.nextElementSibling : best;
+    if (ref !== d.el && d.el.nextElementSibling !== ref) wrap.insertBefore(d.el, ref);
+  }, { passive:false });
+  function endCardDrag(){
+    const d = cardDrag; clearTimeout(d.timer);
+    if (!d.el) return;
+    const el = d.el; d.el = null;
+    if (!d.active) return;
+    d.active = false;
+    if (d.ghost){ d.ghost.remove(); d.ghost = null; }
+    el.classList.remove('card-slot'); $('#cards').classList.remove('sorting'); document.body.classList.remove('grabbing');
+    d.justDropped = true; setTimeout(() => d.justDropped = false, 0);
+    const byId = new Map(cur.cards.map(c => [c.id, c]));
+    cur.cards = [...$('#cards').children].map(x => byId.get(x.dataset.id)).filter(Boolean);
+    touch(); save(); renderCards();
+  }
+  window.addEventListener('pointerup', endCardDrag);
+  window.addEventListener('pointercancel', endCardDrag);
+  document.addEventListener('contextmenu', e => { if (cardDrag.active || cardDrag.armed && cardDrag.el) e.preventDefault(); });
+  document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('#cards')) e.preventDefault(); });
+
   $('#addCard').addEventListener('click', () => { if ((cur.cards || []).length < MAX_CARDS) openCardDialog(null); });
 
   // 카드 보기 팝업: 카드명 + 본문만 표시, '수정하기'로 수정창 전환
