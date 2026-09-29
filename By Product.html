@@ -14,6 +14,13 @@
   --text:#1B221E; --text-dim:#59635B; --text-faint:#879086;
   --accent:#1F6F5C; --accent-strong:#154F41; --accent-tint:#E3EFEA; --danger:#A83A2C; --danger-tint:#F8E4E0;
   --shadow:0 1px 2px rgba(27,34,30,.06),0 8px 24px -14px rgba(27,34,30,.14);
+  --c-gray-bg:#EEEEE8; --c-gray-fg:#4A524C;
+  --c-green-bg:#E1F0E8; --c-green-fg:#1D6B4F;
+  --c-blue-bg:#E2ECF8; --c-blue-fg:#2A5A94;
+  --c-yellow-bg:#FAF1D2; --c-yellow-fg:#86620C;
+  --c-orange-bg:#FBE7D8; --c-orange-fg:#9A4A17;
+  --c-red-bg:#F8E1DE; --c-red-fg:#9E3527;
+  --c-purple-bg:#ECE5F6; --c-purple-fg:#5D3F8E;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   --serif:'Noto Serif KR',ui-serif,Georgia,serif;
   --sans:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',ui-sans-serif,system-ui,sans-serif;
@@ -24,6 +31,13 @@
     --text:#EEF0E8; --text-dim:#A7B0A0; --text-faint:#78816F;
     --accent:#57C4A2; --accent-strong:#7BD9BA; --accent-tint:#1E332C; --danger:#EE8C7E; --danger-tint:#3B1E19;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
+    --c-gray-bg:#262A23; --c-gray-fg:#C6CCC0;
+    --c-green-bg:#1C3329; --c-green-fg:#8FD9B6;
+    --c-blue-bg:#1B2A3D; --c-blue-fg:#9CC1EE;
+    --c-yellow-bg:#352D14; --c-yellow-fg:#E8CB78;
+    --c-orange-bg:#3A2616; --c-orange-fg:#F0B083;
+    --c-red-bg:#3B1F1B; --c-red-fg:#F0A095;
+    --c-purple-bg:#2C2338; --c-purple-fg:#C7B2EC;
     color-scheme:dark;
   }
 }
@@ -32,6 +46,13 @@
   --text:#EEF0E8; --text-dim:#A7B0A0; --text-faint:#78816F;
   --accent:#57C4A2; --accent-strong:#7BD9BA; --accent-tint:#1E332C; --danger:#EE8C7E; --danger-tint:#3B1E19;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
+  --c-gray-bg:#262A23; --c-gray-fg:#C6CCC0;
+  --c-green-bg:#1C3329; --c-green-fg:#8FD9B6;
+  --c-blue-bg:#1B2A3D; --c-blue-fg:#9CC1EE;
+  --c-yellow-bg:#352D14; --c-yellow-fg:#E8CB78;
+  --c-orange-bg:#3A2616; --c-orange-fg:#F0B083;
+  --c-red-bg:#3B1F1B; --c-red-fg:#F0A095;
+  --c-purple-bg:#2C2338; --c-purple-fg:#C7B2EC;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -117,6 +138,54 @@ button{cursor:pointer}
 .saved{font-size:12.5px;color:var(--text-faint)}
 .editor{width:100%;min-height:360px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:0;overflow:hidden}
 .editor::placeholder{color:var(--text-faint)}
+/* 카드 */
+.cards-zone{display:flex;flex-direction:column;gap:10px;margin-top:-6px;min-height:34px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{border:0;text-align:left;border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;min-height:96px;background:var(--cbg);color:var(--cfg);transition:transform .12s}
+.card:hover{transform:translateY(-1px)}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+.card .emo{font-size:20px;line-height:1.2;min-height:24px}
+.card .ct{font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
+.card .cb{font-size:13px;line-height:1.5;opacity:.9;white-space:pre-wrap;overflow-wrap:anywhere}
+.add-card{align-self:flex-start;border:1px dashed var(--border);background:transparent;color:var(--text-faint);border-radius:9px;padding:5px 12px;font-size:13.5px;font-weight:500;opacity:0;transition:opacity .12s}
+.cards-zone:hover .add-card,.add-card:focus-visible{opacity:1}
+.cards-zone.none .add-card{opacity:.001}
+.cards-zone.none:hover .add-card{opacity:1}
+@media (hover:none){.add-card{opacity:1!important}}
+.add-card:hover{color:var(--accent);border-color:var(--accent)}
+.card-limit{font-size:12.5px;color:var(--text-faint);opacity:0}
+.cards-zone:hover .card-limit{opacity:1}
+[data-c="gray"]{--cbg:var(--c-gray-bg);--cfg:var(--c-gray-fg)}
+[data-c="green"]{--cbg:var(--c-green-bg);--cfg:var(--c-green-fg)}
+[data-c="blue"]{--cbg:var(--c-blue-bg);--cfg:var(--c-blue-fg)}
+[data-c="yellow"]{--cbg:var(--c-yellow-bg);--cfg:var(--c-yellow-fg)}
+[data-c="orange"]{--cbg:var(--c-orange-bg);--cfg:var(--c-orange-fg)}
+[data-c="red"]{--cbg:var(--c-red-bg);--cfg:var(--c-red-fg)}
+[data-c="purple"]{--cbg:var(--c-purple-bg);--cfg:var(--c-purple-fg)}
+
+/* 팝업 */
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(15,18,14,.42);display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog{background:var(--surface);color:var(--text);border-radius:16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.45);width:100%;max-width:440px;max-height:calc(100% - 32px);overflow-y:auto;padding:22px 22px 18px;display:flex;flex-direction:column;gap:18px}
+.dialog h3{margin:0;font-size:17px;font-weight:700}
+.fgroup{display:flex;flex-direction:column;gap:8px}
+.flabel{font-size:13px;font-weight:600;color:var(--text-dim);display:flex;justify-content:space-between}
+.flabel .cnt{font-family:var(--mono);font-weight:500;font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.flabel .cnt.full{color:var(--danger)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{width:32px;height:32px;border-radius:50%;border:2px solid transparent;background:var(--cbg);box-shadow:inset 0 0 0 1px var(--border);display:inline-flex;align-items:center;justify-content:center;color:var(--cfg);font-size:14px;font-weight:700;padding:0}
+.sw[aria-checked="true"]{border-color:var(--cfg)}
+.emojis{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.emo-btn{border:1px solid transparent;background:transparent;border-radius:8px;height:36px;font-size:19px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.emo-btn:hover{background:var(--surface-2)}
+.emo-btn[aria-checked="true"]{background:var(--accent-tint);border-color:var(--accent)}
+.emo-btn.none{font-size:12px;color:var(--text-faint)}
+textarea.field{resize:vertical;min-height:72px;line-height:1.6}
+.dfoot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:14px}
+.dfoot .sp{flex:1}
+.preview-wrap{display:flex;justify-content:center;padding:4px 0}
+.preview-wrap .card{width:190px;cursor:default}
+.preview-wrap .card:hover{transform:none}
+
 .pagefoot{display:flex;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px}
 </style>
 </head>
@@ -150,8 +219,13 @@ button{cursor:pointer}
 
     <section class="page" id="page" hidden>
       <input class="ptitle" id="pTitle" placeholder="제목 없음" aria-label="프로젝트 이름">
+      <div class="cards-zone" id="cardsZone">
+        <div class="cards" id="cards"></div>
+        <button class="add-card" id="addCard" type="button">+ 카드 추가</button>
+        <span class="card-limit" id="cardLimit" hidden>카드는 최대 5개까지 추가할 수 있어요.</span>
+      </div>
       <div class="tabs" role="tablist" id="tabs"></div>
-      <div class="tabbar-tools">
+      <div class="tabbar-tools" id="tabTools">
         <input class="tabname" id="tabName" aria-label="탭 이름" placeholder="탭 이름">
         <span class="saved" id="saved"></span>
         <button class="btn ghost danger" id="delTab" type="button">탭 삭제</button>
@@ -180,6 +254,14 @@ button{cursor:pointer}
     }
   } catch(e) {}
   data.ordered = true;
+  // 기본 '개요' 탭 정리: 내용 없이 남아 있는 '개요' 탭은 제거
+  data.projects.forEach(p => {
+    if (p.type === 'divider') return;
+    if (!Array.isArray(p.tabs)) p.tabs = [];
+    if (!Array.isArray(p.cards)) p.cards = [];
+    if (!data.noDefaultTab) p.tabs = p.tabs.filter(t => !(t.name === '개요' && !(t.body || '').trim()));
+  });
+  data.noDefaultTab = true;
 
   let saveT;
   function save(){
@@ -366,8 +448,7 @@ button{cursor:pointer}
   function createProject(){
     const input = $('#newName');
     const name = input.value.trim(); if (!name) { input.focus(); return; }
-    const t = { id: uid('t_'), name: '개요', body: '' };
-    const p = { id: uid('p_'), name, createdAt: Date.now(), updatedAt: Date.now(), activeTab: t.id, tabs: [t] };
+    const p = { id: uid('p_'), name, createdAt: Date.now(), updatedAt: Date.now(), activeTab: null, tabs: [], cards: [] };
     data.projects.push(p); // 새 프로젝트는 맨 아래
     save(); input.value = '';
     location.hash = 'p-' + p.id;
@@ -386,14 +467,14 @@ button{cursor:pointer}
     $('#welcomeTitle').textContent = none ? '첫 프로젝트를 만들어 보세요' : '프로젝트를 선택하세요';
     $('#welcomeText').textContent = none ? '왼쪽 위에 프로젝트 이름을 적고 만들기를 누르면 목록에 추가되고 바로 열려요.' : '왼쪽 목록에서 프로젝트를 누르면 여기에 탭별 내용이 열려요.';
   }
-  const activeTab = () => cur.tabs.find(t => t.id === cur.activeTab) || cur.tabs[0];
+  const activeTab = () => cur.tabs.find(t => t.id === cur.activeTab) || cur.tabs[0] || null;
   const touch = () => { cur.updatedAt = Date.now(); }; // 수정 일시만 기록, 목록 순서는 바꾸지 않음
 
   function showPage(p){
     $('#welcome').hidden = true; $('#page').hidden = false;
     $('#pTitle').value = p.name;
     $('#saved').textContent = '';
-    renderTabs(); loadTab();
+    renderCards(); renderTabs(); loadTab();
     window.scrollTo({ top: 0 });
   }
   function renderTabs(){
@@ -401,7 +482,7 @@ button{cursor:pointer}
     const at = activeTab();
     cur.tabs.forEach(t => {
       const b = document.createElement('button'); b.type='button'; b.className='tab'; b.setAttribute('role','tab');
-      b.setAttribute('aria-selected', String(t.id === at.id)); b.textContent = t.name || '제목 없음';
+      b.setAttribute('aria-selected', String(!!at && t.id === at.id)); b.textContent = t.name || '제목 없음';
       b.addEventListener('click', () => { cur.activeTab = t.id; save(); renderTabs(); loadTab(); });
       bar.append(b);
     });
@@ -412,10 +493,13 @@ button{cursor:pointer}
       const n = $('#tabName'); n.focus(); n.select();
     });
     bar.append(add);
-    $('#delTab').hidden = cur.tabs.length <= 1;
+
   }
   function loadTab(){
     const t = activeTab();
+    const has = !!t;
+    $('#tabTools').hidden = !has; $('#editor').hidden = !has;
+    if (!has) return;
     $('#tabName').value = t.name;
     $('#editor').value = t.body || '';
     grow();
@@ -427,19 +511,135 @@ button{cursor:pointer}
     const n = document.querySelector('#plist .pitem.active .name'); if (n) n.textContent = e.target.value || '제목 없음';
   });
   $('#tabName').addEventListener('input', e => {
+    if (!activeTab()) return;
     activeTab().name = e.target.value; touch(); saveSoon();
     const sel = $('#tabs [aria-selected="true"]'); if (sel) sel.textContent = e.target.value || '제목 없음';
   });
-  $('#editor').addEventListener('input', e => { activeTab().body = e.target.value; touch(); grow(); saveSoon(); });
+  $('#editor').addEventListener('input', e => { if (!activeTab()) return; activeTab().body = e.target.value; touch(); grow(); saveSoon(); });
   $('#delTab').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
-    if (cur.tabs.length <= 1) return;
-    const id = activeTab().id; cur.tabs = cur.tabs.filter(t => t.id !== id); cur.activeTab = cur.tabs[0].id;
+    const t = activeTab(); if (!t) return;
+    cur.tabs = cur.tabs.filter(x => x.id !== t.id); cur.activeTab = cur.tabs[0] ? cur.tabs[0].id : null;
     touch(); save(); renderTabs(); loadTab();
   }));
   $('#delProject').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 프로젝트 삭제', () => {
     data.projects = data.projects.filter(p => p.id !== cur.id); save(); location.hash = '';
     if (location.hash) route(); else route();
   }));
+  // ---------- 카드 ----------
+  const MAX_CARDS = 5, MAX_TITLE = 10, MAX_BODY = 50;
+  const COLORS = [['gray','회색'],['green','초록'],['blue','파랑'],['yellow','노랑'],['orange','주황'],['red','빨강'],['purple','보라']];
+  const EMOJIS = ['📌','💡','📊','🎯','✅','⚠️','🚀','🧩','📝','💰','👥','🔍','📅','⭐','🔥','🛠️','📈','📣','🤝','🏁','❓','🔒','🌱'];
+  const clip = (v, n) => Array.from(v).slice(0, n).join('');
+  const len = v => Array.from(v).length;
+
+  function cardEl(c, onClick){
+    const el = document.createElement(onClick ? 'button' : 'div'); if (onClick){ el.type='button'; el.addEventListener('click', onClick); }
+    el.className = 'card'; el.dataset.c = c.color || 'gray';
+    const e = document.createElement('span'); e.className='emo'; e.textContent = c.emoji || '';
+    const t = document.createElement('span'); t.className='ct'; t.textContent = c.title || '카드명';
+    const b = document.createElement('span'); b.className='cb'; b.textContent = c.body || '';
+    el.append(e, t, b);
+    if (onClick) el.setAttribute('aria-label', `${c.title} 카드 수정`);
+    return el;
+  }
+  function renderCards(){
+    const wrap = $('#cards'); wrap.replaceChildren();
+    const cards = cur.cards || (cur.cards = []);
+    cards.forEach(c => wrap.append(cardEl(c, () => openCardDialog(c))));
+    wrap.hidden = cards.length === 0;
+    $('#cardsZone').classList.toggle('none', cards.length === 0);
+    const full = cards.length >= MAX_CARDS;
+    $('#addCard').hidden = full; $('#cardLimit').hidden = !full;
+  }
+  $('#addCard').addEventListener('click', () => { if ((cur.cards || []).length < MAX_CARDS) openCardDialog(null); });
+
+  function openCardDialog(card){
+    const isNew = !card;
+    const st = { color: card ? card.color : 'green', emoji: card ? card.emoji : '📌', title: card ? card.title : '', body: card ? card.body : '' };
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+        <h3 id="dlgTitle">${isNew ? '카드 추가' : '카드 수정'}</h3>
+        <div class="preview-wrap" id="dlgPreview"></div>
+        <div class="fgroup"><div class="flabel"><span id="lblColor">카드 색상</span></div><div class="swatches" role="radiogroup" aria-labelledby="lblColor" id="dlgColors"></div></div>
+        <div class="fgroup"><div class="flabel"><span id="lblEmo">카드 이모티콘</span></div><div class="emojis" role="radiogroup" aria-labelledby="lblEmo" id="dlgEmojis"></div></div>
+        <div class="fgroup"><label class="flabel" for="dlgName"><span>카드명</span><span class="cnt" id="cntName"></span></label>
+          <input class="field" id="dlgName" maxlength="${MAX_TITLE}" autocomplete="off" placeholder="최대 ${MAX_TITLE}자"></div>
+        <div class="fgroup"><label class="flabel" for="dlgBody"><span>카드 본문 내용</span><span class="cnt" id="cntBody"></span></label>
+          <textarea class="field" id="dlgBody" maxlength="${MAX_BODY}" placeholder="최대 ${MAX_BODY}자"></textarea></div>
+        <div class="dfoot">
+          ${isNew ? '' : '<button class="btn ghost danger" type="button" id="dlgDel">삭제</button>'}
+          <span class="sp"></span>
+          <button class="btn" type="button" id="dlgCancel">취소</button>
+          <button class="btn primary" type="button" id="dlgSave">${isNew ? '추가' : '저장'}</button>
+        </div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    const name = q('#dlgName'), body = q('#dlgBody');
+    name.value = st.title; body.value = st.body;
+
+    function preview(){ q('#dlgPreview').replaceChildren(cardEl({ ...st, title: st.title || '카드명', body: st.body || '본문 내용이 여기에 보여요.' })); }
+    function counts(){
+      const a = len(name.value), b = len(body.value);
+      q('#cntName').textContent = `${a}/${MAX_TITLE}`; q('#cntName').classList.toggle('full', a >= MAX_TITLE);
+      q('#cntBody').textContent = `${b}/${MAX_BODY}`; q('#cntBody').classList.toggle('full', b >= MAX_BODY);
+    }
+    COLORS.forEach(([k, label]) => {
+      const b = document.createElement('button'); b.type='button'; b.className='sw'; b.dataset.c = k; b.title = label;
+      b.setAttribute('role','radio'); b.setAttribute('aria-label', label);
+      b.addEventListener('click', () => { st.color = k; syncSel(); preview(); });
+      q('#dlgColors').append(b);
+    });
+    ['', ...EMOJIS].forEach(em => {
+      const b = document.createElement('button'); b.type='button'; b.className = 'emo-btn' + (em ? '' : ' none');
+      b.textContent = em || '없음'; b.dataset.e = em; b.setAttribute('role','radio'); b.setAttribute('aria-label', em || '이모티콘 없음');
+      b.addEventListener('click', () => { st.emoji = em; syncSel(); preview(); });
+      q('#dlgEmojis').append(b);
+    });
+    function syncSel(){
+      ov.querySelectorAll('.sw').forEach(b => { const on = b.dataset.c === st.color; b.setAttribute('aria-checked', String(on)); b.textContent = on ? '✓' : ''; });
+      ov.querySelectorAll('.emo-btn').forEach(b => b.setAttribute('aria-checked', String(b.dataset.e === st.emoji)));
+    }
+    // 글자 수 제한 (한글 조합 중에도 넘치지 않게 조합이 끝나면 자름)
+    function limit(el, max, key){
+      const apply = () => { if (len(el.value) > max) el.value = clip(el.value, max); st[key] = el.value; counts(); preview(); };
+      el.addEventListener('input', e => { if (!e.isComposing) apply(); else { st[key] = clip(el.value, max); counts(); preview(); } });
+      el.addEventListener('compositionend', apply);
+    }
+    limit(name, MAX_TITLE, 'title'); limit(body, MAX_BODY, 'body');
+    syncSel(); counts(); preview();
+
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){
+      if (e.key === 'Escape'){ e.stopPropagation(); close(); }
+      if (e.key === 'Tab'){ // 포커스를 팝업 안에 가둠
+        const f = [...ov.querySelectorAll('button,input,textarea')].filter(x => !x.disabled);
+        const i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length-1].focus(); }
+        else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); }
+      }
+    }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#dlgCancel').addEventListener('click', close);
+    q('#dlgSave').addEventListener('click', () => {
+      const title = clip(name.value.trim(), MAX_TITLE), text = clip(body.value.trim(), MAX_BODY);
+      if (!title){ name.focus(); name.placeholder = '카드명을 입력해 주세요'; name.style.borderColor = 'var(--danger)'; return; }
+      if (isNew){
+        if (cur.cards.length >= MAX_CARDS){ close(); return; }
+        cur.cards.push({ id: uid('c_'), color: st.color, emoji: st.emoji, title, body: text });
+      } else Object.assign(card, { color: st.color, emoji: st.emoji, title, body: text });
+      touch(); save(); renderCards(); close();
+    });
+    const del = q('#dlgDel');
+    if (del) del.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+      cur.cards = cur.cards.filter(c => c !== card); touch(); save(); renderCards(); close();
+    }));
+    setTimeout(() => name.focus(), 0);
+  }
+
   window.addEventListener('beforeunload', () => { clearTimeout(saveT); save(); });
 
   route();
