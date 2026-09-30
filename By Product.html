@@ -142,7 +142,25 @@ button{cursor:pointer}
 .recent-item .ri-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .recent-item .ri-time{font-size:12px;color:var(--text-faint)}
 .recent-empty{margin:0;font-size:13.5px;color:var(--text-faint)}
-.home-center{flex:1;min-height:320px}
+.home-center{flex:1;min-height:280px}
+.quick{position:sticky;bottom:16px}
+.quick-btn{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+.quick-btn:hover{border-color:var(--accent)}
+.quick-btn svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linejoin:round}
+.quick-btn .qt{font-weight:700;font-size:14.5px}
+.quick-btn .qs{font-size:13px;color:var(--text-faint);margin-left:auto}
+@media (max-width:560px){.quick-btn .qs{display:none}}
+.qselect{appearance:none;-webkit-appearance:none;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23A89398' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center/14px;padding-right:32px}
+.targets{list-style:none;margin:0;padding:4px;border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.targets li.grp{font-size:12.5px;font-weight:600;color:var(--text-faint);padding:6px 8px 2px}
+.targets button{width:100%;text-align:left;border:0;background:transparent;border-radius:7px;padding:7px 10px;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.targets button:hover{background:var(--surface-2)}
+.targets button[aria-checked="true"]{background:var(--accent-tint);color:var(--accent-strong);font-weight:600}
+.targets .path{color:var(--text-faint);font-size:12px}
+.targets .newtab{color:var(--accent-strong)}
+.tnone{font-size:13px;color:var(--text-faint);padding:8px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);z-index:40;background:var(--text);color:var(--bg);border-radius:12px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:12px;font-size:13.5px;box-shadow:0 12px 30px -12px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast button{border:0;background:var(--accent);color:#fff;border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;white-space:nowrap}
 .search-wrap{position:relative}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 12px;box-shadow:var(--shadow)}
 .search:focus-within{border-color:var(--accent)}
@@ -289,7 +307,15 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
         <p class="recent-empty" id="recentEmpty">아직 방문한 프로젝트가 없어요. 왼쪽 목록에서 프로젝트를 열면 여기에 표시돼요.</p>
       </div>
       <div class="home-center" id="homeCenter" aria-hidden="true"></div>
+      <div class="quick">
+        <button class="quick-btn" id="quickBtn" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13h2.5L13 5.5 10.5 3 3 10.5z"/><path d="M9.5 4l2.5 2.5"/></svg>
+          <span class="qt">빠르게 내용 작성하기</span>
+          <span class="qs">프로젝트와 항목을 골라 바로 기록해요</span>
+        </button>
+      </div>
     </section>
+    <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastGo">바로 가기</button></div>
 
     <section class="page" id="page" hidden>
       <div class="search-wrap">
@@ -595,6 +621,125 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       li.append(b); ul.append(li);
     });
   }
+  // ---------- 빠르게 내용 작성하기 ----------
+  // 프로젝트의 탭 구조를 펼쳐서, 내용을 적을 수 있는 항목(더 나뉘지 않은 탭)만 고를 수 있게 함
+  function leafTargets(p){
+    const out = [];
+    const walk = (node, path, depth) => {
+      const kids = depth < 3 ? subsOf(node) : [];
+      if (kids.length) kids.forEach(k => walk(k, [...path, k.name || '제목 없음'], depth + 1));
+      else out.push({ node, path });
+    };
+    (p.tabs || []).forEach(t => walk(t, [t.name || '제목 없음'], 1));
+    return out;
+  }
+  function locate(p, node){ // 항목으로 이동할 수 있도록 선택 상태를 맞춤
+    for (const t of p.tabs || []){
+      if (t === node){ p.activeTab = t.id; return; }
+      for (const a of subsOf(t)){
+        if (a === node){ p.activeTab = t.id; t.activeSub = a.id; return; }
+        for (const b of subsOf(a)) if (b === node){ p.activeTab = t.id; t.activeSub = a.id; a.activeSub = b.id; return; }
+      }
+    }
+  }
+  let toastT;
+  function toast(msg, go){
+    $('#toastMsg').textContent = msg; const b = $('#toastGo'); b.hidden = !go; b.onclick = () => { $('#toast').hidden = true; go(); };
+    $('#toast').hidden = false; clearTimeout(toastT); toastT = setTimeout(() => $('#toast').hidden = true, 5000);
+  }
+  const NEW_TAB = '__new__';
+  function openQuickWrite(){
+    const projs = projectsOnly();
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="qwTitle">
+        <h3 id="qwTitle">빠르게 내용 작성하기</h3>
+        <div class="fgroup"><label class="flabel" for="qwProj"><span>프로젝트</span></label>
+          <select class="field qselect" id="qwProj"></select></div>
+        <div class="fgroup"><div class="flabel"><span id="qwTLabel">항목</span></div>
+          <ul class="targets" role="radiogroup" aria-labelledby="qwTLabel" id="qwTargets"></ul></div>
+        <div class="fgroup"><label class="flabel" for="qwText"><span>내용</span><span class="cnt" id="qwWhere"></span></label>
+          <textarea class="field" id="qwText" placeholder="알아본 내용을 적어 주세요. 선택한 항목의 본문 끝에 추가돼요."></textarea></div>
+        <div class="dfoot"><span class="sp"></span>
+          <button class="btn" type="button" id="qwCancel">취소</button>
+          <button class="btn primary" type="button" id="qwSave">추가</button>
+        </div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    const sel = q('#qwProj');
+    if (!projs.length){
+      q('#qwTargets').innerHTML = '<li class="tnone">먼저 왼쪽에서 프로젝트를 만들어 주세요.</li>';
+      sel.disabled = true; q('#qwText').disabled = true; q('#qwSave').disabled = true;
+    }
+    projs.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name || '제목 없음'; sel.append(o); });
+    const recentId = (data.recent || []).map(v => v.id).find(id => find(id));
+    if (recentId) sel.value = recentId;
+    let chosen = null, targets = [];
+    function renderTargets(){
+      const p = find(sel.value), ul = q('#qwTargets'); ul.replaceChildren(); chosen = null;
+      if (!p) return;
+      targets = leafTargets(p);
+      const pick = (val, btn) => { chosen = val; ul.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b === btn))); where(); };
+      let lastTop = null;
+      targets.forEach(t => {
+        if (t.path.length > 1 && t.path[0] !== lastTop){ ul.append(Object.assign(document.createElement('li'), { className:'grp', textContent: t.path[0] })); }
+        lastTop = t.path.length > 1 ? t.path[0] : null;
+        const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.setAttribute('role','radio');
+        if (t.path.length > 1){
+          const mid = t.path.slice(1, -1);
+          if (mid.length){ const m = document.createElement('span'); m.className = 'path'; m.textContent = mid.join(' › ') + ' ›'; b.append(m); }
+          b.append(document.createTextNode(t.path[t.path.length - 1])); b.style.paddingLeft = '18px';
+        } else b.textContent = t.path[0];
+        b.addEventListener('click', () => pick(t, b));
+        li.append(b); ul.append(li);
+      });
+      // 탭이 없거나 새 탭에 적고 싶을 때
+      const li = document.createElement('li'), b = document.createElement('button'); b.type='button'; b.setAttribute('role','radio'); b.className = 'newtab';
+      b.textContent = '+ 새 탭 ‘빠른 메모’에 추가'; b.addEventListener('click', () => pick(NEW_TAB, b)); li.append(b); ul.append(li);
+      // 기본 선택: 프로젝트에서 마지막으로 보던 항목
+      const curNode = (() => { const t = p.tabs.find(x => x.id === p.activeTab) || p.tabs[0]; if (!t) return null; const a = activeSub(t); if (!a) return t; return activeSub(a) || a; })();
+      const i = targets.findIndex(t => t.node === curNode);
+      const btns = ul.querySelectorAll('button');
+      if (i >= 0) pick(targets[i], [...btns].filter(x => !x.classList.contains('newtab'))[i]);
+      else pick(NEW_TAB, btns[btns.length - 1]);
+    }
+    function where(){
+      const p = find(sel.value);
+      q('#qwWhere').textContent = !p || !chosen ? '' : (chosen === NEW_TAB ? `${p.name} › 빠른 메모` : `${p.name} › ${chosen.path.join(' › ')}`);
+    }
+    sel.addEventListener('change', renderTargets);
+    renderTargets();
+
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){
+      if (e.key === 'Escape'){ e.stopPropagation(); close(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
+    }
+    function submit(){
+      const p = find(sel.value), text = q('#qwText').value.trim();
+      if (!p || !chosen) return;
+      if (!text){ q('#qwText').focus(); q('#qwText').style.borderColor = 'var(--danger)'; return; }
+      let node;
+      if (chosen === NEW_TAB){
+        node = (p.tabs || []).find(t => t.name === '빠른 메모' && !subsOf(t).length);
+        if (!node){ node = { id: uid('t_'), name: '빠른 메모', body: '' }; p.tabs.push(node); }
+      } else node = chosen.node;
+      node.body = (node.body || '').replace(/\s+$/, '') ? node.body.replace(/\s+$/, '') + '\n\n' + text : text;
+      locate(p, node); p.updatedAt = Date.now(); save();
+      const label = q('#qwWhere').textContent;
+      close();
+      toast(`‘${label}’에 추가했어요.`, () => { location.hash = 'p-' + p.id; if (location.hash.endsWith(p.id)) route(); });
+    }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#qwCancel').addEventListener('click', close);
+    q('#qwSave').addEventListener('click', submit);
+    setTimeout(() => q('#qwText').focus(), 0);
+  }
+  $('#quickBtn').addEventListener('click', openQuickWrite);
+
   $('#homeLink').addEventListener('click', e => {
     e.preventDefault();
     if (location.hash) location.hash = ''; else route();
