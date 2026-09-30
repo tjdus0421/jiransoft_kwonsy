@@ -363,6 +363,22 @@
   .empty-row td{ color:var(--text-faint); text-align:center; padding:22px; }
 
   .actions-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  th.check-col, td.check-col{ width:52px; text-align:center; }
+  input.row-check{
+    width:17px;
+    height:17px;
+    accent-color:var(--accent);
+    cursor:pointer;
+  }
+  tr.is-checked td{ color:var(--text-dim); }
+  tr.is-checked td.proj{ text-decoration:line-through; }
+  tr.is-checked{ background:var(--accent-tint); }
+  .check-progress{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-dim);
+  }
+  .check-progress.all-done{ color:var(--accent); }
   .toast{
     font-size:13px;
     color:var(--accent);
@@ -439,13 +455,15 @@
       <div class="tablewrap">
         <table>
           <thead>
-            <tr><th>담당자</th><th>월</th><th>프로젝트</th><th>업무일</th><th>수행일수</th></tr>
+            <tr><th>담당자</th><th>월</th><th>프로젝트</th><th>업무일</th><th>수행일수</th><th class="check-col">확인</th></tr>
           </thead>
           <tbody id="resultBody"></tbody>
         </table>
       </div>
       <div class="actions-row">
         <button class="ghost" id="copyBtn">표 복사하기</button>
+        <button class="ghost small" id="checkAllBtn" type="button">전체 확인 / 해제</button>
+        <span class="check-progress" id="checkProgress"></span>
         <span class="toast" id="copyToast"></span>
       </div>
       <textarea class="copyarea" id="copyArea" style="display:none" readonly></textarea>
@@ -679,6 +697,9 @@
   var copyBtn = document.getElementById("copyBtn");
   var copyToast = document.getElementById("copyToast");
   var copyArea = document.getElementById("copyArea");
+  var checkAllBtn = document.getElementById("checkAllBtn");
+  var checkProgress = document.getElementById("checkProgress");
+  var checkedRows = {};   // "담당자|월|프로젝트" → true (확인 완료)
 
   var tabBtnMonthly = document.getElementById("tabBtnMonthly");
   var tabBtnDaily = document.getElementById("tabBtnDaily");
@@ -882,21 +903,51 @@
 
     resultBody.innerHTML = "";
     if (!result.rows.length){
-      resultBody.appendChild(el("tr", {class:"empty-row"}, [ el("td", {colspan:"5", text:"해당 사용자·월에 집계된 프로젝트 업무가 없어요."}) ]));
+      resultBody.appendChild(el("tr", {class:"empty-row"}, [ el("td", {colspan:"6", text:"해당 사용자·월에 집계된 프로젝트 업무가 없어요."}) ]));
     } else {
       result.rows.forEach(function(r){
+        var key = checkKey(user, month, r.project);
+        var box = el("input", {type:"checkbox", class:"row-check", "aria-label":r.project + " 확인"});
+        box.checked = !!checkedRows[key];
         var tr = el("tr", {}, [
           el("td", {text:user}),
           el("td", {text: month + "월"}),
           el("td", {class:"proj", text:r.project}),
           el("td", {class:"days", text: r.days.join(", ")}),
-          el("td", {class:"num", text: fmtNum(r.hours)})
+          el("td", {class:"num", text: fmtNum(r.hours)}),
+          el("td", {class:"no-copy check-col"}, [box])
         ]);
+        if (box.checked) tr.classList.add("is-checked");
+        box.addEventListener("change", function(){
+          if (box.checked) checkedRows[key] = true;
+          else delete checkedRows[key];
+          tr.classList.toggle("is-checked", box.checked);
+          renderCheckProgress();
+        });
         resultBody.appendChild(tr);
       });
     }
+    renderCheckProgress();
     copyToast.textContent = "";
     copyArea.style.display = "none";
+  });
+
+  // ---------- 확인 체크 ----------
+  function checkKey(user, month, project){ return user + "|" + month + "|" + project; }
+  function renderCheckProgress(){
+    var boxes = resultBody.querySelectorAll(".row-check");
+    if (!boxes.length){ checkProgress.textContent = ""; return; }
+    var done = resultBody.querySelectorAll(".row-check:checked").length;
+    checkProgress.textContent = "확인 " + done + " / " + boxes.length;
+    checkProgress.classList.toggle("all-done", done === boxes.length);
+  }
+  checkAllBtn.addEventListener("click", function(){
+    var boxes = Array.from(resultBody.querySelectorAll(".row-check"));
+    if (!boxes.length) return;
+    var makeChecked = boxes.some(function(b){ return !b.checked; });
+    boxes.forEach(function(b){
+      if (b.checked !== makeChecked){ b.checked = makeChecked; b.dispatchEvent(new Event("change")); }
+    });
   });
 
   function wireCopyButton(btn, tableBody, toastEl, areaEl, headerLine){
@@ -905,7 +956,9 @@
       if (!rows.length) return;
       var lines = [headerLine];
       rows.forEach(function(tr){
-        var vals = Array.from(tr.children).map(function(td){ return td.textContent; });
+        var vals = Array.from(tr.children)
+          .filter(function(td){ return !td.classList.contains("no-copy"); })
+          .map(function(td){ return td.textContent; });
         lines.push(vals.join("\t"));
       });
       var tsv = lines.join("\n");
