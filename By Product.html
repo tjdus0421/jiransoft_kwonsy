@@ -76,7 +76,8 @@ button{cursor:pointer}
 /* ---------- GNB ---------- */
 .gnb{background:var(--side);border-right:1px solid var(--border);padding:24px 14px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;overflow-y:auto}
 @media (max-width:760px){.gnb{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border)}}
-.brand{padding:0 6px}
+.brand{padding:4px 6px;display:block;text-decoration:none;color:inherit;border-radius:8px}
+.brand:hover h1{color:var(--accent-strong)}
 .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
 .brand h1{font-family:var(--serif);font-weight:700;font-size:22px;margin:0;letter-spacing:-.01em}
 .create{display:flex;gap:6px}
@@ -130,9 +131,18 @@ button{cursor:pointer}
 /* ---------- 본문 ---------- */
 .main{padding-inline:clamp(16px,5vw,56px);padding-block:40px 80px;min-width:0}
 .page{max-width:820px;display:flex;flex-direction:column;gap:18px}
-.welcome{max-width:520px;display:flex;flex-direction:column;gap:8px;padding-top:40px}
-.welcome h2{font-family:var(--serif);font-size:26px;margin:0}
-.welcome p{margin:0;color:var(--text-dim)}
+.home{max-width:820px;display:flex;flex-direction:column;gap:28px;min-height:calc(100vh - 120px)}
+.home-label{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;margin-bottom:10px}
+.recent-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:1040px){.recent-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.recent-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.recent-item{width:100%;text-align:left;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow);min-width:0}
+.recent-item:hover{border-color:var(--accent)}
+.recent-item .ri-icon{width:26px;height:26px;border-radius:7px;background:var(--accent-tint);color:var(--accent-strong);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.recent-item .ri-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-item .ri-time{font-size:12px;color:var(--text-faint)}
+.recent-empty{margin:0;font-size:13.5px;color:var(--text-faint)}
+.home-center{flex:1;min-height:320px}
 .search-wrap{position:relative}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 12px;box-shadow:var(--shadow)}
 .search:focus-within{border-color:var(--accent)}
@@ -254,10 +264,10 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
 
   <!-- 좌측 GNB -->
   <nav class="gnb" aria-label="프로젝트 목록">
-    <div class="brand">
+    <a class="brand" href="#" id="homeLink" title="홈으로">
       <div class="eyebrow">프로젝트 노트</div>
       <h1>By Product</h1>
-    </div>
+    </a>
     <div class="create">
       <input class="field" id="newName" placeholder="새 프로젝트 이름" autocomplete="off" aria-label="새 프로젝트 이름">
       <button class="btn primary" type="button" id="createBtn">만들기</button>
@@ -272,10 +282,14 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
 
   <!-- 우측 본문 -->
   <main class="main">
-    <div class="welcome" id="welcome">
-      <h2 id="welcomeTitle">프로젝트를 선택하세요</h2>
-      <p id="welcomeText">왼쪽 목록에서 프로젝트를 누르면 여기에 탭별 내용이 열려요.</p>
-    </div>
+    <section class="home" id="welcome" aria-label="홈">
+      <div class="recent">
+        <div class="home-label">최근 방문한 프로젝트</div>
+        <ul class="recent-list" id="recentList"></ul>
+        <p class="recent-empty" id="recentEmpty">아직 방문한 프로젝트가 없어요. 왼쪽 목록에서 프로젝트를 열면 여기에 표시돼요.</p>
+      </div>
+      <div class="home-center" id="homeCenter" aria-hidden="true"></div>
+    </section>
 
     <section class="page" id="page" hidden>
       <div class="search-wrap">
@@ -553,16 +567,43 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   });
 
   // ---------- 본문 ----------
+  // ---------- 홈 (최근 방문한 프로젝트 최대 5개 + 빈 영역) ----------
+  const MAX_RECENT = 5;
+  function ago(t){
+    const m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return '방금 전'; if (m < 60) return `${m}분 전`;
+    const h = Math.floor(m / 60); if (h < 24) return `${h}시간 전`;
+    const d = Math.floor(h / 24); if (d < 7) return `${d}일 전`;
+    const x = new Date(t); return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`;
+  }
+  function recordVisit(id){
+    const r = (data.recent || []).filter(v => v.id !== id);
+    r.unshift({ id, at: Date.now() });
+    data.recent = r.slice(0, 20); save();
+  }
   function showWelcome(){
     $('#page').hidden = true; $('#welcome').hidden = false;
-    const none = projectsOnly().length === 0;
-    $('#welcomeTitle').textContent = none ? '첫 프로젝트를 만들어 보세요' : '프로젝트를 선택하세요';
-    $('#welcomeText').textContent = none ? '왼쪽 위에 프로젝트 이름을 적고 만들기를 누르면 목록에 추가되고 바로 열려요.' : '왼쪽 목록에서 프로젝트를 누르면 여기에 탭별 내용이 열려요.';
+    const ul = $('#recentList'); ul.replaceChildren();
+    const list = (data.recent || []).map(v => ({ v, p: find(v.id) })).filter(x => x.p).slice(0, MAX_RECENT);
+    $('#recentEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
+    list.forEach(({ v, p }) => {
+      const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.className = 'recent-item';
+      const ic = document.createElement('span'); ic.className = 'ri-icon'; ic.textContent = (p.name || '').trim().charAt(0) || '?';
+      const nm = document.createElement('span'); nm.className = 'ri-name'; nm.textContent = p.name || '제목 없음'; b.title = p.name || '';
+      const tm = document.createElement('span'); tm.className = 'ri-time'; tm.textContent = ago(v.at);
+      b.append(ic, nm, tm); b.addEventListener('click', () => { location.hash = 'p-' + p.id; });
+      li.append(b); ul.append(li);
+    });
   }
+  $('#homeLink').addEventListener('click', e => {
+    e.preventDefault();
+    if (location.hash) location.hash = ''; else route();
+  });
   const activeTab = () => cur.tabs.find(t => t.id === cur.activeTab) || cur.tabs[0] || null;
   const touch = () => { cur.updatedAt = Date.now(); }; // 수정 일시만 기록, 목록 순서는 바꾸지 않음
 
   function showPage(p){
+    recordVisit(p.id);
     $('#welcome').hidden = true; $('#page').hidden = false;
     $('#pTitle').value = p.name;
     $('#saved').textContent = '';
