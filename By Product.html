@@ -220,6 +220,42 @@ button{cursor:pointer}
 .mm-row .more{opacity:1;margin-right:4px}
 .mm-all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto}
 .mm-all .mm-row .x{font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wg-row-wrap{padding:2px 0}
+.wg-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wg{position:relative;aspect-ratio:1/1;border-radius:18px;border:0;padding:10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;overflow:hidden;box-shadow:0 6px 16px -8px rgba(120,40,60,.45);cursor:pointer;font-family:inherit;min-width:0}
+.wg:hover{transform:translateY(-1px)}
+@media (prefers-reduced-motion:no-preference){.wg{transition:transform .12s}}
+.wg .wl{font-size:10.5px;font-weight:600;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wg .wv{font-size:22px;font-weight:800;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg .ws{font-size:10.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.wg .wbar{height:5px;border-radius:3px;background:rgba(255,255,255,.35);overflow:hidden}
+.wg .wbar i{display:block;height:100%;background:#fff;border-radius:3px}
+.wg .wmore{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:7px;background:rgba(255,255,255,.25);color:#fff;opacity:0;display:flex;align-items:center;justify-content:center;padding:0}
+.wg .wmore svg{width:13px;height:13px;fill:currentColor}
+.wg:hover .wmore,.wg:focus-within .wmore{opacity:1}
+@media (hover:none){.wg .wmore{opacity:1}}
+.wg.t-dday{background:linear-gradient(145deg,#F28DA6,#C94F6D)}
+.wg.t-clock{background:linear-gradient(145deg,#4B4E6D,#22233A)}
+.wg.t-world{background:linear-gradient(145deg,#6FA8DC,#2F5F9B)}
+.wg.t-timer{background:linear-gradient(145deg,#F6B26B,#D9732B)}
+.wg.t-timer.run{background:linear-gradient(145deg,#93C47D,#3E8E5A)}
+.wg.t-timer.done{animation:wgblink 1s steps(2) 6}
+@keyframes wgblink{50%{filter:brightness(1.35)}}
+.wg.t-progress{background:linear-gradient(145deg,#B4A7D6,#6E5BA8)}
+.wg-row .wg{padding:9px 9px 8px;border-radius:16px}
+.wg-row .wg .wv{font-size:19px}
+.wg-row .wg .wl,.wg-row .wg .ws{font-size:10px}
+.wg-add{aspect-ratio:1/1;border-radius:18px;border:2px dashed var(--border);background:transparent;color:var(--text-faint);font-size:28px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.wg-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint)}
+.wg-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
+.wg-pick{border:0;background:transparent;padding:0;display:flex;flex-direction:column;gap:6px;align-items:stretch;text-align:center;font-size:12.5px;font-weight:600;color:var(--text)}
+.wg-pick .wg{pointer-events:none;box-shadow:0 4px 12px -6px rgba(0,0,0,.3)}
+.wg-pick:hover .wg{transform:scale(1.04)}
+.wg-pick small{font-weight:400;color:var(--text-faint);font-size:11.5px}
+.wg-pick[aria-checked="true"] .wg{outline:3px solid var(--accent);outline-offset:3px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+.chip[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .memo{width:100%;min-height:180px;max-height:50vh;resize:vertical;border:1px solid var(--border);border-radius:10px;background:#FFFDF6;color:#3A2A2E;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.65;outline:none}
 .memo:focus{border-color:var(--accent)}
 .memo-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums}
@@ -641,6 +677,9 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           <p class="ev-empty" id="mmEmpty">다른 메모가 없어요.</p>
           <button class="ev-more" type="button" id="mmMore" hidden></button>
         </div>
+      </section>
+      <section class="wg-row-wrap" aria-label="위젯">
+        <div class="wg-row" id="wgRow"></div>
       </section>
     </aside>
   </main>
@@ -2248,6 +2287,178 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     q('#mmAllNew').addEventListener('click', () => openMemoDialog(null));
   }
   $('#mmNew').addEventListener('click', () => openMemoDialog(null));
+
+  // ---------- 위젯 한 줄 (아이폰 위젯처럼 골라서 추가, 최대 3개) ----------
+  const MAX_WIDGETS = 3;
+  const CITIES = [['Asia/Seoul','서울'],['America/New_York','뉴욕'],['America/Los_Angeles','LA'],['Europe/London','런던'],['Europe/Paris','파리'],['Europe/Berlin','베를린'],['Asia/Tokyo','도쿄'],['Asia/Shanghai','상하이'],['Asia/Singapore','싱가포르'],['Asia/Ho_Chi_Minh','호찌민'],['Australia/Sydney','시드니']];
+  const WIDGET_TYPES = {
+    dday:     { name:'디데이',     desc:'중요한 날까지 남은 날' },
+    clock:    { name:'현재 시간',  desc:'지금 시각과 요일' },
+    world:    { name:'세계 시계',  desc:'다른 도시의 현재 시각' },
+    timer:    { name:'타이머',     desc:'눌러서 시작·일시정지' },
+    progress: { name:'진행률',     desc:'오늘·이번 주·올해가 얼마나 지났는지' },
+  };
+  const widgets = () => (Array.isArray(data.widgets) ? data.widgets : (data.widgets = []));
+  const p2 = n => String(n).padStart(2, '0');
+  function ddayText(dateStr){
+    const t = new Date(); t.setHours(0,0,0,0); const d = keyToDate(dateStr);
+    const diff = Math.round((d - t) / 86400000);
+    return diff === 0 ? 'D-DAY' : diff > 0 ? `D-${diff}` : `D+${-diff}`;
+  }
+  function tzParts(tz){
+    const f = new Intl.DateTimeFormat('ko-KR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short', month: 'numeric', day: 'numeric' });
+    const o = {}; f.formatToParts(new Date()).forEach(x => o[x.type] = x.value); return o;
+  }
+  function progressOf(kind){
+    const n = new Date(); let a, b, label;
+    if (kind === 'day'){ a = new Date(n.getFullYear(), n.getMonth(), n.getDate()); b = new Date(a); b.setDate(b.getDate() + 1); label = '오늘'; }
+    else if (kind === 'week'){ a = new Date(n.getFullYear(), n.getMonth(), n.getDate() - ((n.getDay() + 6) % 7)); b = new Date(a); b.setDate(b.getDate() + 7); label = '이번 주'; }
+    else if (kind === 'month'){ a = new Date(n.getFullYear(), n.getMonth(), 1); b = new Date(n.getFullYear(), n.getMonth() + 1, 1); label = `${n.getMonth() + 1}월`; }
+    else { a = new Date(n.getFullYear(), 0, 1); b = new Date(n.getFullYear() + 1, 0, 1); label = `${n.getFullYear()}년`; }
+    return { pct: Math.min(100, Math.max(0, (n - a) / (b - a) * 100)), label };
+  }
+  const timerLeft = w => w.running ? Math.max(0, w.endAt - Date.now()) : (w.left != null ? w.left : w.minutes * 60000);
+  const mmss = ms => { const t = Math.ceil(ms / 1000); return `${p2(Math.floor(t / 60))}:${p2(t % 60)}`; };
+  // 위젯 한 칸의 내용 (미리보기에도 사용)
+  function widgetFace(w){
+    const el = document.createElement('div'); el.className = `wg t-${w.type}`;
+    const L = document.createElement('span'), V = document.createElement('span'), S = document.createElement('span');
+    L.className = 'wl'; V.className = 'wv'; S.className = 'ws';
+    const now = new Date();
+    if (w.type === 'dday'){ L.textContent = w.title || '디데이'; V.textContent = w.date ? ddayText(w.date) : 'D-?'; S.textContent = w.date ? w.date.replace(/-/g, '.').slice(2) : '날짜를 정해 주세요'; }
+    else if (w.type === 'clock'){ const h = now.getHours(); L.textContent = `${now.getMonth() + 1}.${now.getDate()} (${DOW[now.getDay()]})`; V.textContent = `${p2(h % 12 || 12)}:${p2(now.getMinutes())}`; S.textContent = h < 12 ? '오전' : '오후'; }
+    else if (w.type === 'world'){ const tz = w.tz || 'America/New_York', c = (CITIES.find(x => x[0] === tz) || [tz, tz])[1], o = tzParts(tz); L.textContent = c; V.textContent = `${o.hour === '24' ? '00' : o.hour}:${o.minute}`; S.textContent = `${o.month}.${o.day} (${o.weekday})`; }
+    else if (w.type === 'timer'){ const left = timerLeft(w); L.textContent = `타이머 ${w.minutes}분`; V.textContent = mmss(left); S.textContent = w.running ? '진행 중' : left === 0 ? '완료!' : (w.left != null && w.left < w.minutes * 60000 ? '일시정지' : '눌러서 시작'); if (w.running) el.classList.add('run'); }
+    else if (w.type === 'progress'){ const r = progressOf(w.kind || 'year'); L.textContent = r.label; V.textContent = `${Math.floor(r.pct)}%`; S.innerHTML = ''; const bar = document.createElement('span'); bar.className = 'wbar'; const i = document.createElement('i'); i.style.width = r.pct + '%'; bar.append(i); el.append(L, V, bar); return el; }
+    el.append(L, V, S); return el;
+  }
+  function renderWidgets(){
+    const row = $('#wgRow'); row.replaceChildren();
+    widgets().forEach(w => {
+      const face = widgetFace(w); face.setAttribute('role', 'button'); face.tabIndex = 0; face.dataset.id = w.id;
+      face.setAttribute('aria-label', `${WIDGET_TYPES[w.type].name} 위젯`);
+      const act = () => { if (w.type === 'timer') toggleTimer(w); else openWidgetDialog(w.type, w); };
+      face.addEventListener('click', e => { if (!e.target.closest('.wmore')) act(); });
+      face.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); act(); } });
+      const m = document.createElement('button'); m.type = 'button'; m.className = 'wmore'; m.innerHTML = MORE_SVG; m.setAttribute('aria-label', '위젯 더보기');
+      m.addEventListener('click', e => { e.stopPropagation(); showMenu(m, widgetMenu(w)); });
+      face.append(m); row.append(face);
+    });
+    if (widgets().length < MAX_WIDGETS){
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'wg-add'; add.textContent = '+'; add.setAttribute('aria-label', '위젯 추가');
+      add.addEventListener('click', openWidgetGallery); row.append(add);
+    }
+  }
+  function widgetMenu(w){
+    const list = widgets(), i = list.indexOf(w), items = [];
+    if (w.type !== 'clock') items.push({ icon:'plus', label:'설정', run: () => openWidgetDialog(w.type, w) });
+    if (w.type === 'timer') items.push({ icon:'unpin', label:'초기화', run: () => { w.running = false; w.left = null; save(); renderWidgets(); } });
+    if (i > 0) items.push({ icon:'divider', label:'왼쪽으로', run: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; save(); renderWidgets(); } });
+    if (i < list.length - 1) items.push({ icon:'divider', label:'오른쪽으로', run: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; save(); renderWidgets(); } });
+    items.push({ icon:'trash', label:'위젯 삭제', danger:true, run: () => { data.widgets = list.filter(x => x !== w); save(); renderWidgets(); } });
+    return items;
+  }
+  // 타이머
+  let beepCtx = null;
+  function beep(){
+    try {
+      beepCtx = beepCtx || new (window.AudioContext || window.webkitAudioContext)();
+      [0, .35, .7].forEach(t => { const o = beepCtx.createOscillator(), g = beepCtx.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.0001, beepCtx.currentTime + t); g.gain.exponentialRampToValueAtTime(.25, beepCtx.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, beepCtx.currentTime + t + .25); o.connect(g).connect(beepCtx.destination); o.start(beepCtx.currentTime + t); o.stop(beepCtx.currentTime + t + .3); });
+    } catch(_) {}
+  }
+  function toggleTimer(w){
+    try { beepCtx = beepCtx || new (window.AudioContext || window.webkitAudioContext)(); beepCtx.resume && beepCtx.resume(); } catch(_) {}
+    if (w.running){ w.left = Math.max(0, w.endAt - Date.now()); w.running = false; }
+    else { const left = timerLeft(w) || w.minutes * 60000; w.endAt = Date.now() + left; w.running = true; w.left = null; }
+    save(); renderWidgets();
+  }
+  function tickWidgets(){
+    let changed = false;
+    widgets().forEach(w => { if (w.type === 'timer' && w.running && Date.now() >= w.endAt){ w.running = false; w.left = 0; changed = true; beep(); setTimeout(() => document.querySelector(`.wg[data-id="${w.id}"]`)?.classList.add('done'), 0); } });
+    if (changed) save();
+    if (!$('#sidePanel').hidden && !document.querySelector('#wgRow .wmore[aria-expanded="true"]')){
+      // 화면에 보이는 값만 새로 그림 (메뉴가 열려 있으면 건드리지 않음)
+      document.querySelectorAll('#wgRow .wg').forEach(el => { const w = widgets().find(x => x.id === el.dataset.id); if (!w) return; const f = widgetFace(w); el.className = f.className + (el.classList.contains('done') && !w.running ? ' done' : ''); ['.wl','.wv','.ws','.wbar'].forEach(sel => { const a = el.querySelector(sel), b = f.querySelector(sel); if (a && b) a.replaceWith(b); }); });
+    }
+  }
+  setInterval(tickWidgets, 1000);
+
+  // + 눌렀을 때: 위젯 고르기
+  function openWidgetGallery(){
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wgH" style="max-width:520px">
+        <h3 id="wgH">위젯 추가</h3>
+        <p style="margin:-8px 0 0;font-size:13px;color:var(--text-faint)">오른쪽 맨 아래 한 줄에 최대 ${MAX_WIDGETS}개까지 놓을 수 있어요.</p>
+        <div class="wg-gallery" id="wgGal"></div>
+        <div class="dfoot"><span class="sp"></span><button class="btn" type="button" id="wgGalClose">닫기</button></div></div>`;
+    document.body.append(ov);
+    const samples = { dday:{ type:'dday', title:'프로젝트 오픈', date: ymd(new Date(Date.now() + 30 * 86400000)) }, clock:{ type:'clock' }, world:{ type:'world', tz:'America/New_York' }, timer:{ type:'timer', minutes:25 }, progress:{ type:'progress', kind:'year' } };
+    Object.entries(WIDGET_TYPES).forEach(([k, t]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'wg-pick';
+      b.append(widgetFace(samples[k]), Object.assign(document.createElement('span'), { textContent: t.name }), Object.assign(document.createElement('small'), { textContent: t.desc }));
+      b.addEventListener('click', () => { close(); if (k === 'clock'){ addWidget({ type:'clock' }); } else openWidgetDialog(k, null); });
+      ov.querySelector('#wgGal').append(b);
+    });
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape'){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    ov.querySelector('#wgGalClose').addEventListener('click', close);
+    setTimeout(() => ov.querySelector('.wg-pick')?.focus(), 0);
+  }
+  function addWidget(w){ if (widgets().length >= MAX_WIDGETS) return; widgets().push({ id: uid('w_'), ...w }); save(); renderWidgets(); }
+  // 위젯 설정 (디데이·세계 시계·타이머·진행률)
+  function openWidgetDialog(type, w){
+    if (type === 'clock'){ return; }
+    const isNew = !w, last = document.activeElement, st = Object.assign({ type }, w || {});
+    if (type === 'world' && !st.tz) st.tz = 'America/New_York';
+    if (type === 'timer' && !st.minutes) st.minutes = 25;
+    if (type === 'progress' && !st.kind) st.kind = 'year';
+    if (type === 'dday' && !st.date) st.date = ymd(new Date(Date.now() + 7 * 86400000));
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wdH" style="max-width:400px">
+        <h3 id="wdH">${WIDGET_TYPES[type].name} ${isNew ? '추가' : '설정'}</h3>
+        <div class="preview-wrap" id="wdPrev" style="width:120px;margin:0 auto"></div>
+        <div id="wdForm" style="display:flex;flex-direction:column;gap:14px"></div>
+        <div class="dfoot">${isNew ? '' : '<button class="btn ghost danger" type="button" id="wdDel">삭제</button>'}<span class="sp"></span>
+          <button class="btn" type="button" id="wdCancel">취소</button><button class="btn primary" type="button" id="wdOk">${isNew ? '추가' : '저장'}</button></div></div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s), form = q('#wdForm');
+    const prev = () => { const f = widgetFace(st); f.style.width = '120px'; q('#wdPrev').replaceChildren(f); };
+    const chips = (label, opts, key, cast = x => x) => {
+      const g = document.createElement('div'); g.className = 'fgroup';
+      g.innerHTML = `<div class="flabel"><span>${label}</span></div>`; const c = document.createElement('div'); c.className = 'chips'; c.setAttribute('role','radiogroup');
+      opts.forEach(([v, t]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = t; b.setAttribute('role','radio');
+        b.setAttribute('aria-checked', String(String(st[key]) === String(v)));
+        b.addEventListener('click', () => { st[key] = cast(v); c.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-checked', String(x === b))); prev(); }); c.append(b); });
+      g.append(c); form.append(g); return c;
+    };
+    if (type === 'dday'){
+      form.innerHTML = `<div class="fgroup"><label class="flabel" for="wdTitle"><span>이름</span></label><input class="field" id="wdTitle" maxlength="12" placeholder="예) 제품 출시"></div>
+        <div class="fgroup"><label class="flabel" for="wdDate"><span>날짜</span></label><input class="field" type="date" id="wdDate"></div>`;
+      q('#wdTitle').value = st.title || ''; q('#wdDate').value = st.date;
+      q('#wdTitle').addEventListener('input', e => { st.title = e.target.value; prev(); });
+      q('#wdDate').addEventListener('input', e => { st.date = e.target.value; prev(); });
+    } else if (type === 'world') chips('도시', CITIES.filter(c => c[0] !== 'Asia/Seoul'), 'tz');
+    else if (type === 'timer'){
+      chips('시간', [[5,'5분'],[10,'10분'],[15,'15분'],[25,'25분'],[30,'30분'],[50,'50분'],[60,'60분']], 'minutes', Number);
+    } else if (type === 'progress') chips('기준', [['day','오늘'],['week','이번 주'],['month','이번 달'],['year','올해']], 'kind');
+    prev();
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape'){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#wdCancel').addEventListener('click', close);
+    q('#wdOk').addEventListener('click', () => {
+      if (type === 'dday'){ st.title = (st.title || '').trim() || '디데이'; if (!st.date){ q('#wdDate').focus(); return; } }
+      if (type === 'timer' && w && w.minutes !== st.minutes){ st.running = false; st.left = null; }
+      if (isNew) addWidget(st); else { Object.assign(w, st); save(); renderWidgets(); }
+      close();
+    });
+    const del = q('#wdDel'); if (del) del.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => { data.widgets = widgets().filter(x => x !== w); save(); renderWidgets(); close(); }));
+    setTimeout(() => (q('#wdTitle') || q('#wdOk')).focus(), 0);
+  }
   $('#mmMore').addEventListener('click', openMemoAll);
   // 접기/펼치기 (브라우저에 기억)
   document.querySelectorAll('.w-head').forEach(h => {
@@ -2258,7 +2469,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       try { localStorage.setItem(key, open ? '1' : '0'); } catch(_) {}
     });
   });
-  function renderSidePanel(){ renderCal(); renderMemo(); }
+  function renderSidePanel(){ renderCal(); renderMemo(); renderWidgets(); }
 
   window.addEventListener('beforeunload', () => { if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
 
