@@ -241,6 +241,17 @@ button{cursor:pointer}
 .pg-meta:empty{display:none}
 .pg-items{list-style:none;margin:0;padding:6px 8px 8px;display:flex;flex-direction:column}
 .pg-items li+li{border-top:1px solid var(--border)}
+.pg-selbar{display:flex;align-items:center;gap:10px;padding:10px 18px 4px;flex-wrap:wrap}
+.pg-chk{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer}
+.pg-selcount{font-size:13px;font-weight:600;color:var(--accent-strong)}
+.pg-selbar .sp{flex:1}
+.btn.danger-solid{border-color:var(--danger);color:var(--danger);background:var(--surface)}
+.btn.danger-solid:hover:not(:disabled){background:var(--danger-tint)}
+.btn.danger-solid.armed{background:var(--danger);color:#fff}
+.pg-li{display:flex;align-items:center;gap:4px;padding-left:8px;border-radius:9px}
+.pg-li.on{background:var(--accent-tint)}
+.pg-li .pg-row{flex:1;min-width:0}
+.pg-cb,#pgAll{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none;margin:0}
 .pg-row{width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:11px 10px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center}
 .pg-row:hover{background:var(--surface-2)}
 .pg-row svg{grid-row:1 / span 2;width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.5}
@@ -439,6 +450,12 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
         </div>
         <!-- 페이지 목록 -->
         <div class="pg-listw" id="pgListW">
+                    <div class="pg-selbar" id="pgSelBar" hidden>
+            <label class="pg-chk"><input type="checkbox" id="pgAll"><span>이 쪽 전체 선택</span></label>
+            <span class="pg-selcount" id="pgSelCount"></span><span class="sp"></span>
+            <button class="btn ghost sm" type="button" id="pgSelClear" hidden>선택 해제</button>
+            <button class="btn sm danger-solid" type="button" id="pgSelDel" disabled>선택 삭제</button>
+          </div>
                     <ul class="pg-items" id="pgItems"></ul>
           <nav class="pager" id="pager" aria-label="페이지 목록 이동" hidden></nav>
           <p class="pg-empty" id="pgEmpty">아직 페이지가 없어요. ‘+ 새 페이지’로 알아본 내용을 작성하고 저장하면 여기에 페이지로 쌓여요.</p>
@@ -1082,8 +1099,17 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const ul = $('#pgItems'); ul.replaceChildren();
     $('#pgEmpty').hidden = all.length > 0; ul.hidden = all.length === 0;
     renderPager(total);
+    if (!ui.sel || ui.selNode !== x){ ui.sel = new Set(); ui.selNode = x; }
+    [...ui.sel].forEach(id => { if (!all.some(p => p.id === id)) ui.sel.delete(id); }); // 지워진 페이지 정리
+    ui.shown = list;
+    $('#pgSelBar').hidden = all.length === 0;
     list.forEach(pg => {
       const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.className = 'pg-row';
+      li.className = 'pg-li' + (ui.sel.has(pg.id) ? ' on' : '');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'pg-cb'; cb.checked = ui.sel.has(pg.id);
+      cb.setAttribute('aria-label', `${pg.title || '제목 없음'} 선택`);
+      cb.addEventListener('change', () => { cb.checked ? ui.sel.add(pg.id) : ui.sel.delete(pg.id); li.classList.toggle('on', cb.checked); updateSelBar(); });
+      li.append(cb);
       b.innerHTML = pageIcon;
       const t = document.createElement('span'); t.className = 't'; t.textContent = pg.title || '제목 없음';
       const d = document.createElement('span'); d.className = 'd'; d.textContent = pg.savedAt ? fmtSaved(pg.savedAt) : '';
@@ -1091,8 +1117,37 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       b.append(t, d, ex); b.addEventListener('click', () => openPage(pg));
       li.append(b); ul.append(li);
     });
+    updateSelBar();
     setMode('list');
   }
+  function updateSelBar(){
+    const n = ui.sel ? ui.sel.size : 0, shown = ui.shown || [];
+    const onPage = shown.filter(p => ui.sel.has(p.id)).length;
+    const all = $('#pgAll'); all.checked = shown.length > 0 && onPage === shown.length; all.indeterminate = onPage > 0 && onPage < shown.length;
+    $('#pgSelCount').textContent = n ? `${n}개 선택됨` : '';
+    $('#pgSelClear').hidden = n === 0;
+    const del = $('#pgSelDel'); del.disabled = n === 0;
+    if (del.dataset.armed){ delete del.dataset.armed; del.classList.remove('armed'); }
+    del.textContent = n ? `선택 삭제 (${n})` : '선택 삭제';
+  }
+  $('#pgAll').addEventListener('change', e => {
+    (ui.shown || []).forEach(p => e.target.checked ? ui.sel.add(p.id) : ui.sel.delete(p.id));
+    document.querySelectorAll('#pgItems .pg-li').forEach((li, i) => { const on = e.target.checked; li.classList.toggle('on', on); li.querySelector('.pg-cb').checked = on; });
+    updateSelBar();
+  });
+  $('#pgSelClear').addEventListener('click', () => { ui.sel.clear(); showPageList(); });
+  $('#pgSelDel').addEventListener('click', e => {
+    const b = e.currentTarget, n = ui.sel.size; if (!n) return;
+    if (!b.dataset.armed){
+      b.dataset.armed = '1'; b.classList.add('armed'); b.textContent = `${n}개를 삭제할까요? 한 번 더 누르세요`;
+      setTimeout(() => { if (b.dataset.armed) updateSelBar(); }, 3000); return;
+    }
+    const x = ui.node || target(); if (!x) return;
+    x.pages = pagesOf(x).filter(p => !ui.sel.has(p.id));
+    ui.sel.clear(); touch(); save(); showPageList();
+    toast(`페이지 ${n}개를 삭제했어요.`);
+  });
+
   function renderPager(total){
     const nav = $('#pager'); nav.replaceChildren(); nav.hidden = total <= 1;
     if (total <= 1) return;
