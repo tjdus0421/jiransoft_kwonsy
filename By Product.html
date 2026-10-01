@@ -100,7 +100,7 @@ button{cursor:pointer}
 .more:hover,.more[aria-expanded="true"]{background:var(--border);color:var(--text)}
 .list-label:hover .more,.list-label:focus-within .more,.pitem:hover .more,.pitem:focus-within .more,.more[aria-expanded="true"]{opacity:1}
 @media (hover:none){.more{opacity:.7}}
-.menu{position:fixed;z-index:20;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.3);padding:4px;display:flex;flex-direction:column;text-transform:none;letter-spacing:0}
+.menu{position:fixed;z-index:60;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.3);padding:4px;display:flex;flex-direction:column;text-transform:none;letter-spacing:0}
 .menu button{border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:7px;font-size:13.5px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px}
 .menu button:hover,.menu button:focus-visible{background:var(--surface-2);outline:none}
 .menu button.danger{color:var(--danger)}
@@ -204,6 +204,22 @@ button{cursor:pointer}
 .ev-times[hidden]{display:none}
 .ev-hint{font-size:12px;color:var(--text-faint)}
 .ev-all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto}
+.mm-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mm-label{font-size:12px;font-weight:700;color:var(--text-dim)}
+.mm-label-list{margin:12px 0 6px;padding-top:12px;border-top:1px solid var(--border)}
+.mm-pinned{border:1px solid #F1DFB8;background:#FFFAEB;border-radius:10px;padding:10px 12px;min-height:64px;font-size:13.5px;line-height:1.65;color:#3A2A2E;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow-y:auto;cursor:pointer;position:relative}
+.mm-pinned:hover{border-color:#E0B860}
+.mm-pinned.empty{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text-faint);background:var(--surface-2);border-style:dashed;border-color:var(--border);cursor:default;font-size:12.5px;white-space:normal}
+.mm-pinned .mm-date{display:block;margin-top:6px;font-size:11px;color:#A08850}
+.mm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.mm-row{display:flex;align-items:center;gap:4px;background:var(--surface-2);border-radius:8px}
+.mm-row:hover{background:var(--accent-tint)}
+.mm-open{flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:7px 4px 7px 10px;display:flex;flex-direction:column;gap:1px}
+.mm-open .t{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-open .d{font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.mm-row .more{opacity:1;margin-right:4px}
+.mm-all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto}
+.mm-all .mm-row .x{font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .memo{width:100%;min-height:180px;max-height:50vh;resize:vertical;border:1px solid var(--border);border-radius:10px;background:#FFFDF6;color:#3A2A2E;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.65;outline:none}
 .memo:focus{border-color:var(--accent)}
 .memo-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums}
@@ -618,8 +634,12 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       <section class="widget" id="wMemo">
         <button class="w-head" type="button" aria-expanded="true" data-w="memo"><span>간단 메모장</span><span class="w-caret" aria-hidden="true">⌃</span></button>
         <div class="w-body">
-          <textarea class="memo" id="memo" maxlength="2000" placeholder="떠오른 생각, 통화 내용, 할 일을 가볍게 적어 두세요. 적는 대로 저장돼요."></textarea>
-          <div class="memo-foot"><span id="memoSaved"></span><span id="memoCount"></span></div>
+          <div class="mm-top"><span class="mm-label">고정한 메모</span><button class="ev-add" type="button" id="mmNew">+ 새 메모</button></div>
+          <div class="mm-pinned" id="mmPinned"></div>
+          <div class="mm-label mm-label-list">메모 목록</div>
+          <ul class="mm-list" id="mmList"></ul>
+          <p class="ev-empty" id="mmEmpty">다른 메모가 없어요.</p>
+          <button class="ev-more" type="button" id="mmMore" hidden></button>
         </div>
       </section>
     </aside>
@@ -2100,24 +2120,135 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   $('#calNext').addEventListener('click', () => { calState.m++; if (calState.m > 11){ calState.m = 0; calState.y++; } renderCal(); });
   $('#calToday').addEventListener('click', () => { const n = new Date(); calState.y = n.getFullYear(); calState.m = n.getMonth(); calState.sel = ymd(n); renderCal(); });
 
-  let memoT = null, memoOwner = null;
+  // ---------- 간단 메모장 (여러 개 · 하나는 고정) ----------
+  const MAX_MEMO_SHOWN = 2;
+  function memosOf(p){
+    p = p || cur; if (!p) return [];
+    if (!Array.isArray(p.memos)){ // 예전 한 칸짜리 메모는 고정 메모로 옮김
+      p.memos = [];
+      if (p.memo && (p.memo.text || '').trim()) p.memos.push({ id: uid('m_'), text: p.memo.text, pinned: true, createdAt: p.memo.savedAt || Date.now(), savedAt: p.memo.savedAt || Date.now() });
+      delete p.memo;
+    }
+    return p.memos;
+  }
+  const memoTitle = m => ((m.text || '').split('\n').find(l => l.trim()) || '빈 메모').trim();
   function renderMemo(){
-    memoOwner = cur;
-    const m = (cur && cur.memo) || { text: '', savedAt: 0 };
-    $('#memo').value = m.text || '';
-    $('#memoCount').textContent = `${(m.text || '').length}/2000`;
-    $('#memoSaved').textContent = m.savedAt ? `저장 ${fmtSaved(m.savedAt)}` : '';
+    const all = memosOf(), pinned = all.find(m => m.pinned);
+    const box = $('#mmPinned'); box.replaceChildren(); box.onclick = null;
+    if (pinned){
+      box.classList.remove('empty'); box.title = '눌러서 수정';
+      box.append(document.createTextNode(pinned.text || ''));
+      const d = document.createElement('span'); d.className = 'mm-date'; d.textContent = `저장 ${fmtSaved(pinned.savedAt || pinned.createdAt)}`; box.append(d);
+      box.onclick = () => openMemoDialog(pinned);
+    } else { box.classList.add('empty'); box.removeAttribute('title'); box.textContent = '고정한 메모가 없어요. 메모의 ⋯ 에서 ‘고정’을 누르면 여기에 보여요.'; }
+    const rest = all.filter(m => !m.pinned).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    const ul = $('#mmList'); ul.replaceChildren();
+    rest.slice(0, MAX_MEMO_SHOWN).forEach(m => ul.append(memoRow(m)));
+    $('#mmEmpty').hidden = rest.length > 0; ul.hidden = rest.length === 0;
+    const more = $('#mmMore'); more.hidden = rest.length <= MAX_MEMO_SHOWN;
+    more.textContent = `더보기 (+${rest.length - MAX_MEMO_SHOWN}) · 전체 ${rest.length}개`;
   }
-  function saveMemo(){
-    const owner = memoOwner; if (!owner) return; clearTimeout(memoT); memoT = null;
-    owner.memo = { text: $('#memo').value, savedAt: Date.now() }; save();
-    $('#memoSaved').textContent = `저장 ${fmtSaved(owner.memo.savedAt)}`;
+  function memoRow(m, withSnippet){
+    const li = document.createElement('li'); li.className = 'mm-row';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'mm-open';
+    const t = document.createElement('span'); t.className = 't'; t.textContent = memoTitle(m);
+    const d = document.createElement('span'); d.className = 'd'; d.textContent = fmtSaved(m.savedAt || m.createdAt);
+    b.append(t);
+    if (withSnippet){ const lines = (m.text || '').split('\n').filter(l => l.trim()); if (lines.length > 1){ const x = document.createElement('span'); x.className = 'x'; x.textContent = lines.slice(1).join(' '); b.append(x); } }
+    b.append(d);
+    b.addEventListener('click', () => openMemoDialog(m));
+    const mo = document.createElement('button'); mo.type = 'button'; mo.className = 'more'; mo.innerHTML = MORE_SVG; mo.setAttribute('aria-label', `${memoTitle(m)} 메모 더보기`);
+    mo.addEventListener('click', e => { e.stopPropagation(); showMenu(mo, memoMenu(m)); });
+    li.append(b, mo);
+    return li;
   }
-  $('#memo').addEventListener('input', e => {
-    $('#memoCount').textContent = `${e.target.value.length}/2000`; $('#memoSaved').textContent = '저장 중…';
-    clearTimeout(memoT); memoT = setTimeout(saveMemo, 500);
-  });
-  $('#memo').addEventListener('blur', () => { if (memoT) saveMemo(); });
+  function setPinned(m, on){
+    memosOf().forEach(x => { if (x !== m) delete x.pinned; }); // 고정은 하나만
+    if (on) m.pinned = true; else delete m.pinned;
+    touch(); save(); renderMemo(); refreshMemoAll();
+  }
+  function memoMenu(m){
+    return [
+      m.pinned ? { icon:'unpin', label:'고정 해제', run: () => setPinned(m, false) } : { icon:'pin', label:'고정', run: () => setPinned(m, true) },
+      { icon:'trash', label:'삭제', danger:true, confirm:'한 번 더 누르면 삭제', run: () => { cur.memos = memosOf().filter(x => x !== m); touch(); save(); renderMemo(); refreshMemoAll(); } },
+    ];
+  }
+  // 메모 작성·수정 팝업
+  function openMemoDialog(m){
+    const isNew = !m, owner = cur, last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="mmH">
+        <h3 id="mmH">${isNew ? '새 메모' : '메모 수정'}</h3>
+        <div class="fgroup"><label class="flabel" for="mmText"><span>내용</span><span class="cnt" id="mmCnt"></span></label>
+          <textarea class="memo" id="mmText" maxlength="2000" placeholder="떠오른 생각, 통화 내용, 할 일을 가볍게 적어 두세요. 첫 줄이 목록 제목이 돼요."></textarea></div>
+        <label class="allday"><input type="checkbox" id="mmPin"><span class="sw-track" aria-hidden="true"></span><span>이 메모를 고정</span></label>
+        <div class="dfoot">
+          ${isNew ? '' : '<button class="btn ghost danger" type="button" id="mmDel">삭제</button>'}
+          <span class="sp"></span>
+          <button class="btn" type="button" id="mmCancel">취소</button>
+          <button class="btn primary" type="button" id="mmSave">${isNew ? '추가' : '저장'}</button>
+        </div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    q('#mmText').value = m ? m.text : ''; q('#mmPin').checked = m ? !!m.pinned : !memosOf(owner).some(x => x.pinned);
+    const cnt = () => { q('#mmCnt').textContent = `${q('#mmText').value.length}/2000`; }; cnt();
+    q('#mmText').addEventListener('input', cnt);
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){
+      if (e.key === 'Escape' && ov === [...document.querySelectorAll('.overlay')].pop()){ e.stopPropagation(); close(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
+    }
+    function submit(){
+      const text = q('#mmText').value.replace(/\s+$/, '');
+      if (!text.trim()){ q('#mmText').focus(); q('#mmText').style.borderColor = 'var(--danger)'; return; }
+      const now = Date.now(), list = memosOf(owner);
+      if (isNew){ m = { id: uid('m_'), text, createdAt: now, savedAt: now }; list.push(m); } else Object.assign(m, { text, savedAt: now });
+      if (q('#mmPin').checked){ list.forEach(x => { if (x !== m) delete x.pinned; }); m.pinned = true; } else delete m.pinned;
+      owner.updatedAt = now; save(); close(); renderMemo(); refreshMemoAll();
+    }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#mmCancel').addEventListener('click', close);
+    q('#mmSave').addEventListener('click', submit);
+    const del = q('#mmDel');
+    if (del) del.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+      owner.memos = memosOf(owner).filter(x => x !== m); save(); close(); renderMemo(); refreshMemoAll();
+    }));
+    setTimeout(() => { const t = q('#mmText'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 0);
+  }
+  // 더보기: 메모 전체
+  let refreshMemoAll = () => {};
+  function openMemoAll(){
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="mmAllH">
+        <h3 id="mmAllH"></h3>
+        <ul class="mm-all" id="mmAllList"></ul>
+        <div class="dfoot"><button class="btn" type="button" id="mmAllNew">+ 새 메모</button><span class="sp"></span>
+          <button class="btn primary" type="button" id="mmAllClose">닫기</button></div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    refreshMemoAll = () => {
+      const rest = memosOf().filter(m => !m.pinned).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+      q('#mmAllH').textContent = `메모 목록 ${rest.length}개`;
+      const ul = q('#mmAllList'); ul.replaceChildren();
+      rest.forEach(m => ul.append(memoRow(m, true)));
+      if (!rest.length) ul.innerHTML = '<li class="ev-empty">다른 메모가 없어요.</li>';
+    };
+    refreshMemoAll();
+    function close(){ ov.remove(); refreshMemoAll = () => {}; document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape' && ov === [...document.querySelectorAll('.overlay')].pop() && !document.querySelector('.menu')){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#mmAllClose').addEventListener('click', close);
+    q('#mmAllNew').addEventListener('click', () => openMemoDialog(null));
+  }
+  $('#mmNew').addEventListener('click', () => openMemoDialog(null));
+  $('#mmMore').addEventListener('click', openMemoAll);
   // 접기/펼치기 (브라우저에 기억)
   document.querySelectorAll('.w-head').forEach(h => {
     const key = 'bp.w.' + h.dataset.w;
@@ -2127,9 +2258,9 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       try { localStorage.setItem(key, open ? '1' : '0'); } catch(_) {}
     });
   });
-  function renderSidePanel(){ if (memoT) saveMemo(); renderCal(); renderMemo(); }
+  function renderSidePanel(){ renderCal(); renderMemo(); }
 
-  window.addEventListener('beforeunload', () => { if (memoT) saveMemo(); if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
+  window.addEventListener('beforeunload', () => { if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
 
   route();
 })();
