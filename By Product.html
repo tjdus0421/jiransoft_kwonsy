@@ -131,7 +131,36 @@ button{cursor:pointer}
 .side-empty{font-size:13px;color:var(--text-faint);padding:4px 6px}
 
 /* ---------- 본문 ---------- */
-.main{padding-inline:clamp(16px,5vw,56px);padding-block:40px 80px;min-width:0}
+.main{padding-inline:clamp(16px,4vw,48px);padding-block:40px 80px;min-width:0;display:grid;grid-template-columns:minmax(0,820px) 280px;gap:32px;align-items:start;justify-content:start}
+.main > .home,.main > .page{grid-column:1}
+@media (max-width:1220px){.main{grid-template-columns:minmax(0,1fr)}.side-panel{grid-column:1!important;grid-row:auto!important;position:static!important;max-width:820px}}
+.side-panel{grid-column:2;grid-row:1;position:sticky;top:24px;display:flex;flex-direction:column;gap:14px}
+.widget{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.w-head{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:var(--surface-2);padding:10px 14px;font-size:13px;font-weight:700;color:var(--text-dim);text-align:left}
+.w-head:hover{color:var(--text)}
+.w-caret{font-size:12px;transition:transform .15s}
+.w-head[aria-expanded="false"] .w-caret{transform:rotate(180deg)}
+.w-head[aria-expanded="false"] + .w-body{display:none}
+.w-body{padding:12px 14px 14px}
+.cal-top{display:flex;align-items:center;gap:4px;margin-bottom:8px}
+.cal-title{flex:1;text-align:center;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.cal-nav{border:0;background:transparent;width:28px;height:28px;border-radius:7px;font-size:17px;color:var(--text-dim)}
+.cal-nav:hover,.cal-today:hover{background:var(--surface-2);color:var(--text)}
+.cal-today{border:1px solid var(--border);background:var(--surface);border-radius:7px;font-size:12px;padding:3px 8px;color:var(--text-dim)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-variant-numeric:tabular-nums}
+.cal-grid .dow{font-size:11px;font-weight:600;color:var(--text-faint);padding:4px 0}
+.cal-grid .dow.sun,.cal-grid .day.sun{color:#C0392B}
+.cal-grid .dow.sat,.cal-grid .day.sat{color:#2A5A94}
+.cal-grid .day{position:relative;font-size:12.5px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--text)}
+.cal-grid .day.out{opacity:.3}
+.cal-grid .day.today{background:var(--accent);color:#fff;font-weight:700}
+.cal-grid .day.has::after{content:"";position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-grid .day.today.has::after{background:#fff}
+.cal-legend{margin:8px 0 0;font-size:11.5px;color:var(--text-faint);display:flex;align-items:center;gap:6px}
+.cal-legend i{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+.memo{width:100%;min-height:180px;max-height:50vh;resize:vertical;border:1px solid var(--border);border-radius:10px;background:#FFFDF6;color:#3A2A2E;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.65;outline:none}
+.memo:focus{border-color:var(--accent)}
+.memo-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums}
 .page{max-width:820px;display:flex;flex-direction:column;gap:18px}
 .home{max-width:820px;display:flex;flex-direction:column;gap:28px;min-height:calc(100vh - 120px)}
 .home-label{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;margin-bottom:10px}
@@ -517,6 +546,30 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       </div>
       <div class="pagefoot"><button class="btn ghost danger" id="delProject" type="button">프로젝트 삭제</button></div>
     </section>
+
+    <!-- 오른쪽 영역: ① 달력 ② 간단 메모장 -->
+    <aside class="side-panel" id="sidePanel" hidden aria-label="보조 도구">
+      <section class="widget" id="wCal">
+        <button class="w-head" type="button" aria-expanded="true" data-w="cal"><span>달력</span><span class="w-caret" aria-hidden="true">⌃</span></button>
+        <div class="w-body">
+          <div class="cal-top">
+            <button class="cal-nav" type="button" id="calPrev" aria-label="이전 달">‹</button>
+            <span class="cal-title" id="calTitle"></span>
+            <button class="cal-nav" type="button" id="calNext" aria-label="다음 달">›</button>
+            <button class="cal-today" type="button" id="calToday">오늘</button>
+          </div>
+          <div class="cal-grid" id="calGrid" role="grid" aria-label="달력"></div>
+          <p class="cal-legend"><i></i>이 프로젝트에 페이지를 저장한 날</p>
+        </div>
+      </section>
+      <section class="widget" id="wMemo">
+        <button class="w-head" type="button" aria-expanded="true" data-w="memo"><span>간단 메모장</span><span class="w-caret" aria-hidden="true">⌃</span></button>
+        <div class="w-body">
+          <textarea class="memo" id="memo" maxlength="2000" placeholder="떠오른 생각, 통화 내용, 할 일을 가볍게 적어 두세요. 적는 대로 저장돼요."></textarea>
+          <div class="memo-foot"><span id="memoSaved"></span><span id="memoCount"></span></div>
+        </div>
+      </section>
+    </aside>
   </main>
 
 </div>
@@ -798,7 +851,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     data.recent = r.slice(0, 20); save();
   }
   function showWelcome(){
-    $('#page').hidden = true; $('#welcome').hidden = false;
+    $('#page').hidden = true; $('#welcome').hidden = false; $('#sidePanel').hidden = true;
     const ul = $('#recentList'); ul.replaceChildren();
     const list = (data.recent || []).map(v => ({ v, p: find(v.id) })).filter(x => x.p).slice(0, MAX_RECENT);
     $('#recentEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
@@ -945,7 +998,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   function showPage(p){
     if (typeof ui !== 'undefined' && ui.mode === 'edit' && ui.dirty) commitPage(true);
     recordVisit(p.id);
-    $('#welcome').hidden = true; $('#page').hidden = false;
+    $('#welcome').hidden = true; $('#page').hidden = false; $('#sidePanel').hidden = false;
+    renderSidePanel();
     $('#pTitle').value = p.name;
     $('#saved').textContent = '';
     $('#q').value = ''; $('#results').hidden = true; $('#qcount').textContent = ''; $('#qclear').hidden = true;
@@ -1193,7 +1247,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (ui.isNew && empty && !$('#pgTitleIn').value.trim()){ if (!silent) showPageList(); return; } // 빈 새 페이지는 만들지 않음
     Object.assign(ui.page, { title, html: empty ? '' : ed.innerHTML, body, savedAt: Date.now() });
     if (ui.isNew) pagesOf(x).push(ui.page);
-    ui.isNew = false; ui.dirty = false; touch(); save();
+    ui.isNew = false; ui.dirty = false; touch(); save(); renderCal();
     if (!silent) openPage(ui.page);
   }
   $('#newPage').addEventListener('click', () => editPage(null));
@@ -1768,7 +1822,64 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   $('#qclear').addEventListener('click', () => { $('#q').value = ''; runSearch(); $('#q').focus(); });
   document.addEventListener('pointerdown', e => { if (!e.target.closest('.search-wrap')) $('#results').hidden = true; });
 
-  window.addEventListener('beforeunload', () => { if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
+  // ---------- 오른쪽 영역: 달력 / 간단 메모장 ----------
+  const calState = { y: new Date().getFullYear(), m: new Date().getMonth() };
+  function savedDays(){ // 이 프로젝트에서 페이지를 저장한 날짜 모음
+    const set = new Set(), walk = n => { (n.pages || []).forEach(pg => { if (pg.savedAt){ const d = new Date(pg.savedAt); set.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`); } }); (n.subs || []).forEach(walk); };
+    (cur && cur.tabs || []).forEach(walk); return set;
+  }
+  function renderCal(){
+    const { y, m } = calState, grid = $('#calGrid'); grid.replaceChildren();
+    $('#calTitle').textContent = `${y}년 ${m + 1}월`;
+    ['일','월','화','수','목','금','토'].forEach((d, i) => { const e = document.createElement('div'); e.className = 'dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''); e.textContent = d; grid.append(e); });
+    const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
+    const now = new Date(), has = savedDays();
+    const weeks = Math.ceil((first.getDay() + new Date(y, m + 1, 0).getDate()) / 7);
+    for (let i = 0; i < weeks * 7; i++){
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const e = document.createElement('div'); e.setAttribute('role','gridcell');
+      const dow = d.getDay();
+      e.className = 'day' + (d.getMonth() !== m ? ' out' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '')
+        + (d.toDateString() === now.toDateString() ? ' today' : '') + (has.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`) ? ' has' : '');
+      e.textContent = d.getDate();
+      e.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일`);
+      grid.append(e);
+    }
+  }
+  $('#calPrev').addEventListener('click', () => { calState.m--; if (calState.m < 0){ calState.m = 11; calState.y--; } renderCal(); });
+  $('#calNext').addEventListener('click', () => { calState.m++; if (calState.m > 11){ calState.m = 0; calState.y++; } renderCal(); });
+  $('#calToday').addEventListener('click', () => { const n = new Date(); calState.y = n.getFullYear(); calState.m = n.getMonth(); renderCal(); });
+
+  let memoT = null, memoOwner = null;
+  function renderMemo(){
+    memoOwner = cur;
+    const m = (cur && cur.memo) || { text: '', savedAt: 0 };
+    $('#memo').value = m.text || '';
+    $('#memoCount').textContent = `${(m.text || '').length}/2000`;
+    $('#memoSaved').textContent = m.savedAt ? `저장 ${fmtSaved(m.savedAt)}` : '';
+  }
+  function saveMemo(){
+    const owner = memoOwner; if (!owner) return; clearTimeout(memoT); memoT = null;
+    owner.memo = { text: $('#memo').value, savedAt: Date.now() }; save();
+    $('#memoSaved').textContent = `저장 ${fmtSaved(owner.memo.savedAt)}`;
+  }
+  $('#memo').addEventListener('input', e => {
+    $('#memoCount').textContent = `${e.target.value.length}/2000`; $('#memoSaved').textContent = '저장 중…';
+    clearTimeout(memoT); memoT = setTimeout(saveMemo, 500);
+  });
+  $('#memo').addEventListener('blur', () => { if (memoT) saveMemo(); });
+  // 접기/펼치기 (브라우저에 기억)
+  document.querySelectorAll('.w-head').forEach(h => {
+    const key = 'bp.w.' + h.dataset.w;
+    try { if (localStorage.getItem(key) === '0') h.setAttribute('aria-expanded', 'false'); } catch(_) {}
+    h.addEventListener('click', () => {
+      const open = h.getAttribute('aria-expanded') !== 'true'; h.setAttribute('aria-expanded', String(open));
+      try { localStorage.setItem(key, open ? '1' : '0'); } catch(_) {}
+    });
+  });
+  function renderSidePanel(){ if (memoT) saveMemo(); renderCal(); renderMemo(); }
+
+  window.addEventListener('beforeunload', () => { if (memoT) saveMemo(); if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
 
   route();
 })();
