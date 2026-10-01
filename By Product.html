@@ -228,6 +228,28 @@ button{cursor:pointer}
 .linkbar .field{padding:6px 10px}
 .linkbar .btn{padding:6px 12px}
 .rte{min-height:320px;overflow-wrap:anywhere;cursor:text}
+.btn.sm{padding:6px 12px;font-size:13px}
+.pg-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px}
+.pg-count{font-size:13px;color:var(--text-faint)}
+.pg-items{list-style:none;margin:0;padding:0 8px 8px;display:flex;flex-direction:column}
+.pg-items li+li{border-top:1px solid var(--border)}
+.pg-row{width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:11px 10px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center}
+.pg-row:hover{background:var(--surface-2)}
+.pg-row svg{grid-row:1 / span 2;width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.5}
+.pg-row .t{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-row .d{font-size:12px;color:var(--text-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pg-row .x{grid-column:2 / span 2;font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-row .x:empty{display:none}
+.pg-empty{margin:0;padding:6px 18px 22px;font-size:13.5px;color:var(--text-faint)}
+.pg-bar{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border)}
+.pg-bar .sp,.pg-foot .sp{flex:1}
+.pg-title{font-size:24px;font-weight:700;margin:0;padding:20px 22px 4px;overflow-wrap:anywhere}
+.pg-content{padding:8px 22px 26px;min-height:120px;cursor:default}
+.pg-title-in{display:block;width:100%;border:0;border-bottom:1px solid var(--border);background:transparent;outline:none;font-size:22px;font-weight:700;padding:16px 18px 12px}
+.pg-title-in::placeholder{color:var(--text-faint)}
+.pg-foot{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 13px 13px;position:sticky;bottom:0}
+.pg-hint{font-size:12px;color:var(--text-faint)}
+@media (max-width:560px){.pg-hint{display:none}}
 .rte:empty::before{content:attr(data-placeholder);color:var(--text-faint);pointer-events:none;white-space:pre-wrap}
 .rte > :first-child{margin-top:0}
 .rte p,.rte div{margin:0 0 .35em}
@@ -403,9 +425,28 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       </div>
       <div class="editor-box" id="editorBox">
         <div class="editor-head">
-          <span class="eh-label">본문 내용</span>
+          <span class="eh-label" id="ehLabel">페이지</span>
           <span class="eh-saved" id="lastSaved"></span>
         </div>
+        <!-- 페이지 목록 -->
+        <div class="pg-listw" id="pgListW">
+          <div class="pg-top"><span class="pg-count" id="pgCount"></span><button class="btn primary sm" type="button" id="newPage">+ 새 페이지</button></div>
+          <ul class="pg-items" id="pgItems"></ul>
+          <p class="pg-empty" id="pgEmpty">아직 페이지가 없어요. ‘+ 새 페이지’로 알아본 내용을 작성하고 저장하면 여기에 페이지로 쌓여요.</p>
+        </div>
+        <!-- 페이지 읽기 -->
+        <div class="pg-read" id="pgRead" hidden>
+          <div class="pg-bar">
+            <button class="btn ghost" type="button" id="pgBack">← 목록</button><span class="sp"></span>
+            <button class="btn" type="button" id="pgEdit">수정하기</button>
+            <button class="btn ghost danger" type="button" id="pgDel">삭제</button>
+          </div>
+          <h2 class="pg-title" id="pgTitle"></h2>
+          <div class="rte pg-content" id="pgContent"></div>
+        </div>
+        <!-- 페이지 작성·수정 -->
+        <div class="pg-editw" id="pgEditW" hidden>
+        <input class="pg-title-in" id="pgTitleIn" placeholder="페이지 제목" maxlength="80" autocomplete="off" aria-label="페이지 제목">
         <div class="rte-bar" id="rteBar" role="toolbar" aria-label="서식">
           <select class="rte-sel" id="rteBlock" aria-label="문단 형식">
             <option value="p">본문</option><option value="h2">제목 1</option><option value="h3">제목 2</option><option value="h4">제목 3</option>
@@ -440,7 +481,12 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           <button class="btn primary" type="button" id="linkOk">적용</button>
           <button class="btn" type="button" id="linkCancel">취소</button>
         </div>
-        <div class="editor rte" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="본문 내용" data-placeholder="여기에 알아본 내용을 자유롭게 적으세요. 입력하면 자동으로 저장돼요.  # 제목  - 목록  1. 번호  [] 체크리스트"></div>
+        <div class="editor rte" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="본문 내용" data-placeholder="여기에 알아본 내용을 자유롭게 적으세요.  # 제목  - 목록  1. 번호  [] 체크리스트"></div>
+        <div class="pg-foot"><span class="pg-hint">Ctrl+S로 저장 · 저장하면 페이지로 만들어져요</span><span class="sp"></span>
+          <button class="btn" type="button" id="pgCancel">취소</button>
+          <button class="btn primary" type="button" id="pgSave">저장</button>
+        </div>
+        </div>
       </div>
       <div class="pagefoot"><button class="btn ghost danger" id="delProject" type="button">프로젝트 삭제</button></div>
     </section>
@@ -473,6 +519,19 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (!data.noDefaultTab) p.tabs = p.tabs.filter(t => !(t.name === '개요' && !(t.body || '').trim()));
   });
   data.noDefaultTab = true;
+  // 기존 본문 내용은 각 항목의 첫 페이지로 옮김
+  if (!data.pagesV1){
+    const mig = n => {
+      if (!n) return;
+      if (!Array.isArray(n.pages)) n.pages = [];
+      const hasText = (n.body || '').trim() || (n.html || '').replace(/<[^>]*>/g, '').trim();
+      if (hasText && !n.pages.length) n.pages.push({ id: uid('pg_'), title: n.name || '메모', html: n.html || '', body: n.body || '', createdAt: n.savedAt || Date.now(), savedAt: n.savedAt || Date.now() });
+      delete n.html; delete n.body;
+      (n.subs || []).forEach(mig);
+    };
+    data.projects.forEach(p => { if (p.type !== 'divider') (p.tabs || []).forEach(mig); });
+    data.pagesV1 = true;
+  }
 
   let saveT;
   // 최종 저장 시간 표시: YY.MM.DD 오전/오후 hh:mm
@@ -484,8 +543,14 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   let pendingNode = null;
   function showLastSaved(){
     const el = document.getElementById('lastSaved'); if (!el) return;
-    const x = cur && typeof target === 'function' ? target() : null;
-    el.textContent = x && x.savedAt ? `최종 저장 ${fmtSaved(x.savedAt)}` : '아직 저장된 내용이 없어요';
+    const pg = typeof ui !== 'undefined' && ui.page;
+    if (pg && pg.savedAt) el.textContent = `최종 저장 ${fmtSaved(pg.savedAt)}`;
+    else if (pg) el.textContent = '아직 저장하지 않았어요';
+    else {
+      const x = cur && typeof target === 'function' ? target() : null;
+      const last = x && (x.pages || []).reduce((m, p) => Math.max(m, p.savedAt || 0), 0);
+      el.textContent = last ? `최종 저장 ${fmtSaved(last)}` : '';
+    }
   }
   function save(){
     if (pendingNode){ pendingNode.savedAt = Date.now(); pendingNode = null; }
@@ -757,8 +822,10 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           <select class="field qselect" id="qwProj"></select></div>
         <div class="fgroup"><div class="flabel"><span id="qwTLabel">항목</span></div>
           <ul class="targets" role="radiogroup" aria-labelledby="qwTLabel" id="qwTargets"></ul></div>
+        <div class="fgroup"><label class="flabel" for="qwPTitle"><span>페이지 제목</span></label>
+          <input class="field" id="qwPTitle" maxlength="80" autocomplete="off" placeholder="비워 두면 첫 줄이 제목이 돼요"></div>
         <div class="fgroup"><label class="flabel" for="qwText"><span>내용</span><span class="cnt" id="qwWhere" style="font-family:var(--sans);color:var(--accent-strong)"></span></label>
-          <textarea class="field" id="qwText" placeholder="알아본 내용을 적어 주세요. 선택한 항목의 본문 끝에 추가돼요."></textarea></div>
+          <textarea class="field" id="qwText" placeholder="알아본 내용을 적어 주세요. 선택한 항목에 새 페이지로 저장돼요."></textarea></div>
         <div class="dfoot"><span class="sp"></span>
           <button class="btn" type="button" id="qwCancel">취소</button>
           <button class="btn primary" type="button" id="qwSave">추가</button>
@@ -822,14 +889,16 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       let node;
       if (chosen === NEW_TAB){
         node = (p.tabs || []).find(t => t.name === '빠른 메모' && !subsOf(t).length);
-        if (!node){ node = { id: uid('t_'), name: '빠른 메모', body: '' }; p.tabs.push(node); }
+        if (!node){ node = { id: uid('t_'), name: '빠른 메모', pages: [] }; p.tabs.push(node); }
       } else node = chosen.node;
-      node.body = (node.body || '').replace(/\s+$/, '') ? node.body.replace(/\s+$/, '') + '\n\n' + text : text;
-      if (node.html) node.html += textToHtml(text);
-      node.savedAt = Date.now(); locate(p, node); p.updatedAt = Date.now(); save();
+      const ptitle = (q('#qwPTitle').value.trim() || text.split('\n')[0].trim().slice(0, 40));
+      if (!Array.isArray(node.pages)) node.pages = [];
+      const now = Date.now();
+      node.pages.push({ id: uid('pg_'), title: ptitle, html: textToHtml(text), body: text, createdAt: now, savedAt: now });
+      locate(p, node); p.updatedAt = now; save();
       const label = q('#qwWhere').textContent;
       close();
-      toast(`‘${label}’에 추가했어요.`, () => { location.hash = 'p-' + p.id; if (location.hash.endsWith(p.id)) route(); });
+      toast(`‘${label}’에 새 페이지를 만들었어요.`, () => { location.hash = 'p-' + p.id; if (location.hash.endsWith(p.id)) route(); });
     }
     document.addEventListener('keydown', onKey, true);
     ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
@@ -847,6 +916,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   const touch = () => { cur.updatedAt = Date.now(); }; // 수정 일시만 기록, 목록 순서는 바꾸지 않음
 
   function showPage(p){
+    if (typeof ui !== 'undefined' && ui.mode === 'edit' && ui.dirty) commitPage(true);
     recordVisit(p.id);
     $('#welcome').hidden = true; $('#page').hidden = false;
     $('#pTitle').value = p.name;
@@ -907,7 +977,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       const par = L.parent(); if (!par) return;
       if (!Array.isArray(par.subs)) par.subs = [];
       // 처음 나눌 때 이미 적어 둔 내용은 '기본' 하위 탭으로 옮김
-      if (par.subs.length === 0 && (par.body || '').trim()) { par.subs.push({ id: uid('s_'), name: '기본', body: par.body, html: par.html }); par.body = ''; par.html = ''; }
+      if (par.subs.length === 0 && (par.pages || []).length) { par.subs.push({ id: uid('s_'), name: '기본', pages: par.pages }); par.pages = []; }
       const x = { id: uid('s_'), name: L.prefix + (par.subs.length + 1), body: '' };
       par.subs.push(x); par.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
       const n = $('#' + L.name); n.focus(); n.select();
@@ -926,7 +996,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   // 2단계 더보기: 하위 탭 추가(3단계) / 하위 탭 삭제
   function addChild(par, prefix){
     if (!Array.isArray(par.subs)) par.subs = [];
-    if (par.subs.length === 0 && (par.body || '').trim()) { par.subs.push({ id: uid('s_'), name: '기본', body: par.body, html: par.html }); par.body = ''; par.html = ''; }
+    if (par.subs.length === 0 && (par.pages || []).length) { par.subs.push({ id: uid('s_'), name: '기본', pages: par.pages }); par.pages = []; }
     const x = { id: uid('s_'), name: prefix + (par.subs.length + 1), body: '' };
     par.subs.push(x); par.activeSub = x.id; touch(); save(); renderSubs(); loadTab();
   }
@@ -948,9 +1018,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     $('#tabTools').hidden = !has; $('#editorBox').hidden = !has;
     if (!has) return;
     $('#tabName').value = t.name;
-    setEditor(target());
-    showLastSaved();
-    grow();
+    if (ui.mode === 'edit' && ui.dirty) commitPage(true); // 저장하지 않고 이동하면 자동 저장
+    showPageList();
   }
   function grow(){}
 
@@ -977,13 +1046,84 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     ed.childNodes.forEach(n => { const t = (n.innerText !== undefined ? n.innerText : n.textContent) || ''; parts.push(t.replace(/\n+$/, '')); });
     return parts.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
-  function syncEditor(){
-    const x = target(); if (!x) return;
+  function syncEditor(){ ui.dirty = true; $('#lastSaved').textContent = '저장 전 · 수정 중'; }
+
+  // ---------- 페이지 (탭마다 여러 개, 저장하면 페이지로 생성) ----------
+  const ui = { mode:'list', page:null, isNew:false, dirty:false, node:null };
+  const pagesOf = x => x ? (Array.isArray(x.pages) ? x.pages : (x.pages = [])) : [];
+  const pageIcon = '<svg viewBox="0 0 16 16"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.5 1.8V5h3M6 8h4.5M6 10.5h4.5"/></svg>';
+  function setMode(m){
+    ui.mode = m;
+    $('#pgListW').hidden = m !== 'list'; $('#pgRead').hidden = m !== 'read'; $('#pgEditW').hidden = m !== 'edit';
+    $('#ehLabel').textContent = m === 'list' ? '페이지' : m === 'edit' ? (ui.isNew ? '새 페이지 작성' : '페이지 수정') : '페이지';
+    showLastSaved();
+  }
+  function showPageList(){
+    const x = target(); ui.node = x; ui.page = null; ui.dirty = false; ui.isNew = false;
+    const list = [...pagesOf(x)].sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    const ul = $('#pgItems'); ul.replaceChildren();
+    $('#pgCount').textContent = list.length ? `페이지 ${list.length}개` : '';
+    $('#pgEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
+    list.forEach(pg => {
+      const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.className = 'pg-row';
+      b.innerHTML = pageIcon;
+      const t = document.createElement('span'); t.className = 't'; t.textContent = pg.title || '제목 없음';
+      const d = document.createElement('span'); d.className = 'd'; d.textContent = pg.savedAt ? fmtSaved(pg.savedAt) : '';
+      const ex = document.createElement('span'); ex.className = 'x'; ex.textContent = (pg.body || '').replace(/\s+/g, ' ').slice(0, 90);
+      b.append(t, d, ex); b.addEventListener('click', () => openPage(pg));
+      li.append(b); ul.append(li);
+    });
+    setMode('list');
+  }
+  function openPage(pg){
+    ui.page = pg; ui.isNew = false; ui.dirty = false;
+    $('#pgTitle').textContent = pg.title || '제목 없음';
+    $('#pgContent').innerHTML = pg.html || (pg.body ? textToHtml(pg.body) : '<p style="color:var(--text-faint)">내용이 없어요.</p>');
+    $('#pgContent').querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    setMode('read');
+  }
+  function editPage(pg){
+    ui.isNew = !pg; ui.page = pg || { id: uid('pg_'), title: '', html: '', body: '', createdAt: Date.now() };
+    ui.dirty = false;
+    $('#pgTitleIn').value = ui.page.title || '';
+    $('#editor').innerHTML = ui.page.html || (ui.page.body ? textToHtml(ui.page.body) : '');
+    if (!$('#editor').textContent.trim() && !$('#editor').querySelector('hr,li')) $('#editor').innerHTML = '';
+    setMode('edit'); updateBar();
+    setTimeout(() => (ui.isNew ? $('#pgTitleIn') : $('#editor')).focus(), 0);
+  }
+  function commitPage(silent){
+    const x = ui.node || target(); if (!x || !ui.page) return;
     const ed = $('#editor');
     const empty = !ed.textContent.trim() && !ed.querySelector('hr,li,img');
-    x.html = empty ? '' : ed.innerHTML; x.body = empty ? '' : plainOf(ed);
-    pendingNode = x; touch(); saveSoon();
+    let title = $('#pgTitleIn').value.trim();
+    const body = empty ? '' : plainOf(ed);
+    if (!title) title = (body.split('\n').find(l => l.trim()) || '').trim().slice(0, 40) || `메모 ${fmtSaved(Date.now()).slice(0, 8)}`;
+    if (ui.isNew && empty && !$('#pgTitleIn').value.trim()){ if (!silent) showPageList(); return; } // 빈 새 페이지는 만들지 않음
+    Object.assign(ui.page, { title, html: empty ? '' : ed.innerHTML, body, savedAt: Date.now() });
+    if (ui.isNew) pagesOf(x).push(ui.page);
+    ui.isNew = false; ui.dirty = false; touch(); save();
+    if (!silent) openPage(ui.page);
   }
+  $('#newPage').addEventListener('click', () => editPage(null));
+  $('#pgBack').addEventListener('click', showPageList);
+  $('#pgEdit').addEventListener('click', () => editPage(ui.page));
+  $('#pgDel').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+    const x = ui.node || target(); if (!x || !ui.page) return;
+    x.pages = pagesOf(x).filter(p => p !== ui.page); touch(); save(); showPageList();
+  }));
+  $('#pgSave').addEventListener('click', () => commitPage(false));
+  $('#pgCancel').addEventListener('click', () => { if (ui.isNew) showPageList(); else openPage(ui.page); });
+  $('#pgTitleIn').addEventListener('input', () => { ui.dirty = true; });
+  $('#pgTitleIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); $('#editor').focus(); } });
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && ui.mode === 'edit' && !$('#page').hidden){ e.preventDefault(); commitPage(false); }
+  });
+  // 읽기 화면에서도 체크리스트 완료 표시 가능
+  $('#pgContent').addEventListener('click', e => {
+    const li = e.target.closest && e.target.closest('ul.check > li'); if (!li || !ui.page) return;
+    const r = li.getBoundingClientRect(); if (e.clientX - r.left >= 22) return;
+    li.classList.toggle('done'); ui.page.html = $('#pgContent').innerHTML; ui.page.savedAt = Date.now(); touch(); save();
+  });
   const ed = $('#editor');
   try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch(_) {}
   ed.addEventListener('input', () => { if (ed.querySelector('p ul,p ol,p h2,p h3,p h4,p blockquote,p p,p hr')) normalize(); syncEditor(); });
@@ -1461,7 +1601,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   function searchIndex(){
     const out = [];
     const walk = (node, path, ids) => {
-      out.push({ kind:'tab', path, ids, name: node.name || '', body: node.body || '' });
+      out.push({ kind:'tab', path, ids, name: node.name || '', body: '' });
+      (node.pages || []).forEach(pg => out.push({ kind:'page', page: pg, path: [...path, pg.title || '제목 없음'], ids, name: pg.title || '', body: pg.body || '' }));
       if (ids.length < 3) subsOf(node).forEach(x => walk(x, [...path, x.name || '제목 없음'], [...ids, x.id]));
     };
     (cur.tabs || []).forEach(t => walk(t, [t.name || '제목 없음'], [t.id]));
@@ -1504,10 +1645,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (s1){ t.activeSub = s1; const x = subsOf(t).find(y => y.id === s1); if (x && s2) x.activeSub = s2; }
     else if (subsOf(t).length) { /* 상위 탭 이름만 일치: 탭만 열기 */ }
     save(); renderTabs(); loadTab();
-    const ed = $('#editor');
-    if (h.inBody && target() && target().body === h.body && selectText(ed, h.sn.hit)){
-      /* 선택 완료 */
-    } else $('#tabs [aria-selected="true"]')?.scrollIntoView({ block:'nearest' });
+    if (h.kind === 'page'){ openPage(h.page); selectText($('#pgContent'), h.sn.hit); return; }
+    $('#tabs [aria-selected="true"]')?.scrollIntoView({ block:'nearest' });
   }
   function selectText(root, word){
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const lw = word.toLowerCase(); let n;
@@ -1537,7 +1676,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   $('#qclear').addEventListener('click', () => { $('#q').value = ''; runSearch(); $('#q').focus(); });
   document.addEventListener('pointerdown', e => { if (!e.target.closest('.search-wrap')) $('#results').hidden = true; });
 
-  window.addEventListener('beforeunload', () => { clearTimeout(saveT); save(); });
+  window.addEventListener('beforeunload', () => { if (ui.mode === 'edit' && ui.dirty) commitPage(true); clearTimeout(saveT); save(); });
 
   route();
 })();
