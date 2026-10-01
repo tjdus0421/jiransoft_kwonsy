@@ -257,6 +257,7 @@ button{cursor:pointer}
 .wg-mid{padding:8px!important;border-radius:16px!important}
 .wg-mid .wv{font-size:17px!important}
 .wg-mid .wl,.wg-mid .ws{font-size:9.5px!important}
+.wg .fit{text-overflow:clip!important;overflow:visible!important}
 .wg-add{aspect-ratio:1/1;border-radius:18px;border:2px dashed var(--border);background:transparent;color:var(--text-faint);font-size:28px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .wg-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint)}
 .wg-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px 12px}
@@ -2384,6 +2385,18 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     else if (w.type === 'progress'){ const r = progressOf(w.kind || 'year'); L.textContent = r.label; V.textContent = `${Math.floor(r.pct)}%`; S.innerHTML = ''; const bar = document.createElement('span'); bar.className = 'wbar'; const i = document.createElement('i'); i.style.width = r.pct + '%'; bar.append(i); el.append(L, V, bar); return el; }
     el.append(L, V, S); return el;
   }
+  // 위젯 글자가 칸보다 길면 말줄임 대신 글자를 작게 줄여서 전부 보여 줌
+  function fitWidgetText(root){
+    (root || document).querySelectorAll('.wg .wl, .wg .wv, .wg .ws').forEach(t => {
+      t.classList.add('fit'); t.style.fontSize = '';
+      const box = t.parentElement, avail = box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) - parseFloat(getComputedStyle(box).paddingRight);
+      if (avail <= 0) return;
+      t.style.whiteSpace = ''; t.style.lineHeight = ''; t.style.wordBreak = '';
+      let fs = parseFloat(getComputedStyle(t).fontSize), min = t.classList.contains('wv') ? 8 : 7.5;
+      while (t.scrollWidth > avail + 0.5 && fs > min){ fs -= 0.5; t.style.fontSize = fs + 'px'; }
+      if (t.scrollWidth > avail + 0.5 && !t.classList.contains('wv')){ t.style.whiteSpace = 'normal'; t.style.lineHeight = '1.2'; t.style.wordBreak = 'keep-all'; if (t.scrollWidth > avail + 0.5) t.style.wordBreak = 'break-all'; } // 그래도 길면 두 줄로
+    });
+  }
   function renderWidgets(){
     const row = $('#wgRow'); row.replaceChildren();
     widgets().forEach(w => {
@@ -2400,6 +2413,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       const add = document.createElement('button'); add.type = 'button'; add.className = 'wg-add'; add.textContent = '+'; add.setAttribute('aria-label', '위젯 추가');
       add.addEventListener('click', openWidgetGallery); row.append(add);
     }
+    fitWidgetText(row);
   }
   function widgetMenu(w){
     const list = widgets(), i = list.indexOf(w), items = [];
@@ -2430,7 +2444,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (changed) save();
     if (!$('#sidePanel').hidden && !document.querySelector('#wgRow .wmore[aria-expanded="true"]')){
       // 화면에 보이는 값만 새로 그림 (메뉴가 열려 있으면 건드리지 않음)
-      document.querySelectorAll('#wgRow .wg').forEach(el => { const w = widgets().find(x => x.id === el.dataset.id); if (!w) return; const f = widgetFace(w); el.className = f.className + (el.classList.contains('done') && !w.running ? ' done' : ''); ['.wl','.wv','.ws','.wbar'].forEach(sel => { const a = el.querySelector(sel), b = f.querySelector(sel); if (a && b) a.replaceWith(b); }); });
+      document.querySelectorAll('#wgRow .wg').forEach(el => { const w = widgets().find(x => x.id === el.dataset.id); if (!w) return; const f = widgetFace(w); el.className = f.className + (el.classList.contains('done') && !w.running ? ' done' : ''); ['.wl','.wv','.ws','.wbar'].forEach(sel => { const a = el.querySelector(sel), b = f.querySelector(sel); if (a && b && a.textContent !== b.textContent) { a.replaceWith(b); fitWidgetText(el); } else if (sel === '.wbar' && a && b) a.replaceWith(b); }); });
     }
   }
   setInterval(tickWidgets, 1000);
@@ -2452,6 +2466,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       b.addEventListener('click', () => { close(); if (k === 'clock'){ addWidget({ type:'clock' }); } else openWidgetDialog(k, null); });
       ov.querySelector('#wgGal').append(b);
     });
+    fitWidgetText(ov.querySelector('#wgGal'));
     function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
     function onKey(e){ if (e.key === 'Escape'){ e.stopPropagation(); close(); } }
     document.addEventListener('keydown', onKey, true);
@@ -2478,7 +2493,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           <button class="btn" type="button" id="wdCancel">취소</button><button class="btn primary" type="button" id="wdOk">${isNew ? '추가' : '저장'}</button></div></div>`;
     document.body.append(ov);
     const q = s => ov.querySelector(s), form = q('#wdForm');
-    const prev = () => { const f = widgetFace(st); f.style.width = '96px'; f.classList.add('wg-mid'); q('#wdPrev').replaceChildren(f); };
+    const prev = () => { const f = widgetFace(st); f.style.width = '96px'; f.classList.add('wg-mid'); q('#wdPrev').replaceChildren(f); fitWidgetText(q('#wdPrev')); };
     const chips = (label, opts, key, cast = x => x) => {
       const g = document.createElement('div'); g.className = 'fgroup';
       g.innerHTML = `<div class="flabel"><span>${label}</span></div>`; const c = document.createElement('div'); c.className = 'chips'; c.setAttribute('role','radiogroup');
