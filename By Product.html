@@ -221,7 +221,7 @@ button{cursor:pointer}
 .mm-all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto}
 .mm-all .mm-row .x{font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wg-row-wrap{padding:2px 0}
-.wg-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wg-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .wg{position:relative;aspect-ratio:1/1;border-radius:18px;border:0;padding:10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;overflow:hidden;box-shadow:0 6px 16px -8px rgba(120,40,60,.45);cursor:pointer;font-family:inherit;min-width:0}
 .wg:hover{transform:translateY(-1px)}
 @media (prefers-reduced-motion:no-preference){.wg{transition:transform .12s}}
@@ -235,6 +235,10 @@ button{cursor:pointer}
 .wg:hover .wmore,.wg:focus-within .wmore{opacity:1}
 @media (hover:none){.wg .wmore{opacity:1}}
 .wg.t-dday{background:linear-gradient(145deg,#F28DA6,#C94F6D)}
+.wg.t-dday.m-since{background:linear-gradient(145deg,#7FD1B9,#2E9A7E)}
+.wg.t-dday.m-milestone{background:linear-gradient(145deg,#F9B9A0,#E07A5F)}
+.wg.t-dday.m-work{background:linear-gradient(145deg,#9FB6F0,#5672C9)}
+.wg.t-dday.m-add{background:linear-gradient(145deg,#F7D774,#D9A21E)}
 .wg.t-clock{background:linear-gradient(145deg,#4B4E6D,#22233A)}
 .wg.t-world{background:linear-gradient(145deg,#6FA8DC,#2F5F9B)}
 .wg.t-timer{background:linear-gradient(145deg,#F6B26B,#D9732B)}
@@ -242,16 +246,27 @@ button{cursor:pointer}
 .wg.t-timer.done{animation:wgblink 1s steps(2) 6}
 @keyframes wgblink{50%{filter:brightness(1.35)}}
 .wg.t-progress{background:linear-gradient(145deg,#B4A7D6,#6E5BA8)}
-.wg-row .wg{padding:9px 9px 8px;border-radius:16px}
-.wg-row .wg .wv{font-size:19px}
-.wg-row .wg .wl,.wg-row .wg .ws{font-size:10px}
+.wg-row .wg{padding:6px 7px 6px;border-radius:14px;box-shadow:0 4px 10px -6px rgba(120,40,60,.45)}
+.wg-row .wg .wv{font-size:14.5px;letter-spacing:-.03em}
+.wg-row .wg .wl{font-size:8.5px}
+.wg-row .wg .ws{font-size:8px}
+.wg-row .wg .wbar{height:4px}
+.wg-row .wg .wmore{top:3px;right:3px;width:17px;height:17px;border-radius:5px}
+.wg-row .wg .wmore svg{width:10px;height:10px}
+.wg-row .wg-add{border-radius:14px;font-size:20px}
+.wg-mid{padding:8px!important;border-radius:16px!important}
+.wg-mid .wv{font-size:17px!important}
+.wg-mid .wl,.wg-mid .ws{font-size:9.5px!important}
 .wg-add{aspect-ratio:1/1;border-radius:18px;border:2px dashed var(--border);background:transparent;color:var(--text-faint);font-size:28px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .wg-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint)}
-.wg-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
-.wg-pick{border:0;background:transparent;padding:0;display:flex;flex-direction:column;gap:6px;align-items:stretch;text-align:center;font-size:12.5px;font-weight:600;color:var(--text)}
+.wg-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px 12px}
+.wg-gallery .wg{padding:8px;border-radius:16px}
+.wg-gallery .wg .wv{font-size:17px}
+.wg-gallery .wg .wl,.wg-gallery .wg .ws{font-size:9.5px}
+.wg-pick{border:0;background:transparent;padding:0;display:flex;flex-direction:column;gap:4px;align-items:stretch;text-align:center;font-size:12px;font-weight:600;color:var(--text)}
 .wg-pick .wg{pointer-events:none;box-shadow:0 4px 12px -6px rgba(0,0,0,.3)}
 .wg-pick:hover .wg{transform:scale(1.04)}
-.wg-pick small{font-weight:400;color:var(--text-faint);font-size:11.5px}
+.wg-pick small{font-weight:400;color:var(--text-faint);font-size:10.5px;line-height:1.35}
 .wg-pick[aria-checked="true"] .wg{outline:3px solid var(--accent);outline-offset:3px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
@@ -2289,17 +2304,54 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   $('#mmNew').addEventListener('click', () => openMemoDialog(null));
 
   // ---------- 위젯 한 줄 (아이폰 위젯처럼 골라서 추가, 최대 3개) ----------
-  const MAX_WIDGETS = 3;
+  const MAX_WIDGETS = 4;
   const CITIES = [['Asia/Seoul','서울'],['America/New_York','뉴욕'],['America/Los_Angeles','LA'],['Europe/London','런던'],['Europe/Paris','파리'],['Europe/Berlin','베를린'],['Asia/Tokyo','도쿄'],['Asia/Shanghai','상하이'],['Asia/Singapore','싱가포르'],['Asia/Ho_Chi_Minh','호찌민'],['Australia/Sydney','시드니']];
   const WIDGET_TYPES = {
-    dday:     { name:'디데이',     desc:'중요한 날까지 남은 날' },
-    clock:    { name:'현재 시간',  desc:'지금 시각과 요일' },
-    world:    { name:'세계 시계',  desc:'다른 도시의 현재 시각' },
-    timer:    { name:'타이머',     desc:'눌러서 시작·일시정지' },
-    progress: { name:'진행률',     desc:'오늘·이번 주·올해가 얼마나 지났는지' },
+    dday:     { name:'날짜',       desc:'디데이·N일째·영업일·날짜 계산' },
+    clock:    { name:'현재 시간',  desc:'시각과 요일' },
+    world:    { name:'세계 시계',  desc:'다른 도시 시각' },
+    timer:    { name:'타이머',     desc:'눌러서 시작·정지' },
+    progress: { name:'진행률',     desc:'오늘·올해가 지난 정도' },
   };
   const widgets = () => (Array.isArray(data.widgets) ? data.widgets : (data.widgets = []));
   const p2 = n => String(n).padStart(2, '0');
+  const DATE_MODES = [
+    ['dday','디데이','목표일까지 남은 날 (D-12)'],
+    ['since','N일째','시작한 날부터 며칠째인지 (34일째)'],
+    ['milestone','기념일','100일·1주년 같은 다음 기념일까지'],
+    ['work','영업일','주말·공휴일을 빼고 남은 근무일'],
+    ['add','날짜 계산','기준일에서 N일 뒤(앞) 날짜'],
+  ];
+  const dayDiff = (a, b) => Math.round((b - a) / 86400000);
+  const today0 = () => { const t = new Date(); t.setHours(0,0,0,0); return t; };
+  const shortDate = d => `${String(d.getFullYear()).slice(2)}.${p2(d.getMonth() + 1)}.${p2(d.getDate())}`;
+  function workdaysBetween(from, to){ // from 다음날 ~ to (포함), 주말·공휴일 제외
+    let n = 0; const d = new Date(from); const sign = to >= from ? 1 : -1;
+    for (let i = 0; i < 3660 && dayDiff(d, to) !== 0; i++){
+      d.setDate(d.getDate() + sign); const w = d.getDay();
+      if (w !== 0 && w !== 6 && !holidaysOn(ymd(d)).some(h => h.off)) n++;
+    }
+    return n * sign;
+  }
+  function dateWidget(w){ // → [제목, 큰 글씨, 작은 글씨]
+    const mode = w.mode || 'dday', t = today0(), d = w.date ? keyToDate(w.date) : null;
+    const title = w.title || (DATE_MODES.find(m => m[0] === mode) || [,'날짜'])[1];
+    if (!d) return [title, '?', '날짜를 정해 주세요'];
+    if (mode === 'since'){ const n = dayDiff(d, t) + 1; return [title, n > 0 ? `${n}일째` : `D-${1 - n}`, `${shortDate(d)}부터`]; }
+    if (mode === 'milestone'){
+      const n = dayDiff(d, t) + 1;
+      const steps = [100,200,300,500,1000,1500,2000,3000];
+      const yrs = []; for (let y = 1; y <= 30; y++){ const a = new Date(d); a.setFullYear(a.getFullYear() + y); yrs.push([dayDiff(d, a) + 1, `${y}주년`]); }
+      const cand = [...steps.map(x => [x, `${x}일`]), ...yrs].filter(c => c[0] >= n).sort((a, b) => a[0] - b[0])[0];
+      if (!cand) return [title, `${n}일째`, shortDate(d)];
+      const left = cand[0] - n;
+      return [title, left === 0 ? '오늘!' : `D-${left}`, `${cand[1]} · ${n}일째`];
+    }
+    if (mode === 'work'){ const n = workdaysBetween(t, d); return [title, n >= 0 ? `${n}일` : `${-n}일 지남`, `영업일 ~${shortDate(d)}`]; }
+    if (mode === 'add'){ const off = Number(w.offset) || 0, r = new Date(d); r.setDate(r.getDate() + off);
+      return [title, `${r.getMonth() + 1}.${r.getDate()}`, `${off >= 0 ? '+' : ''}${off}일 (${DOW[r.getDay()]})`]; }
+    const diff = dayDiff(t, d); return [title, diff === 0 ? 'D-DAY' : diff > 0 ? `D-${diff}` : `D+${-diff}`, shortDate(d)];
+  }
   function ddayText(dateStr){
     const t = new Date(); t.setHours(0,0,0,0); const d = keyToDate(dateStr);
     const diff = Math.round((d - t) / 86400000);
@@ -2325,10 +2377,10 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const L = document.createElement('span'), V = document.createElement('span'), S = document.createElement('span');
     L.className = 'wl'; V.className = 'wv'; S.className = 'ws';
     const now = new Date();
-    if (w.type === 'dday'){ L.textContent = w.title || '디데이'; V.textContent = w.date ? ddayText(w.date) : 'D-?'; S.textContent = w.date ? w.date.replace(/-/g, '.').slice(2) : '날짜를 정해 주세요'; }
+    if (w.type === 'dday'){ const [a, b, c] = dateWidget(w); L.textContent = a; V.textContent = b; S.textContent = c; el.classList.add('m-' + (w.mode || 'dday')); }
     else if (w.type === 'clock'){ const h = now.getHours(); L.textContent = `${now.getMonth() + 1}.${now.getDate()} (${DOW[now.getDay()]})`; V.textContent = `${p2(h % 12 || 12)}:${p2(now.getMinutes())}`; S.textContent = h < 12 ? '오전' : '오후'; }
     else if (w.type === 'world'){ const tz = w.tz || 'America/New_York', c = (CITIES.find(x => x[0] === tz) || [tz, tz])[1], o = tzParts(tz); L.textContent = c; V.textContent = `${o.hour === '24' ? '00' : o.hour}:${o.minute}`; S.textContent = `${o.month}.${o.day} (${o.weekday})`; }
-    else if (w.type === 'timer'){ const left = timerLeft(w); L.textContent = `타이머 ${w.minutes}분`; V.textContent = mmss(left); S.textContent = w.running ? '진행 중' : left === 0 ? '완료!' : (w.left != null && w.left < w.minutes * 60000 ? '일시정지' : '눌러서 시작'); if (w.running) el.classList.add('run'); }
+    else if (w.type === 'timer'){ const left = timerLeft(w); L.textContent = `${w.minutes}분`; V.textContent = mmss(left); S.textContent = w.running ? '진행 중' : left === 0 ? '완료!' : (w.left != null && w.left < w.minutes * 60000 ? '일시정지' : '시작'); if (w.running) el.classList.add('run'); }
     else if (w.type === 'progress'){ const r = progressOf(w.kind || 'year'); L.textContent = r.label; V.textContent = `${Math.floor(r.pct)}%`; S.innerHTML = ''; const bar = document.createElement('span'); bar.className = 'wbar'; const i = document.createElement('i'); i.style.width = r.pct + '%'; bar.append(i); el.append(L, V, bar); return el; }
     el.append(L, V, S); return el;
   }
@@ -2387,13 +2439,13 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   function openWidgetGallery(){
     const last = document.activeElement;
     const ov = document.createElement('div'); ov.className = 'overlay';
-    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wgH" style="max-width:520px">
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wgH" style="max-width:460px">
         <h3 id="wgH">위젯 추가</h3>
         <p style="margin:-8px 0 0;font-size:13px;color:var(--text-faint)">오른쪽 맨 아래 한 줄에 최대 ${MAX_WIDGETS}개까지 놓을 수 있어요.</p>
         <div class="wg-gallery" id="wgGal"></div>
         <div class="dfoot"><span class="sp"></span><button class="btn" type="button" id="wgGalClose">닫기</button></div></div>`;
     document.body.append(ov);
-    const samples = { dday:{ type:'dday', title:'프로젝트 오픈', date: ymd(new Date(Date.now() + 30 * 86400000)) }, clock:{ type:'clock' }, world:{ type:'world', tz:'America/New_York' }, timer:{ type:'timer', minutes:25 }, progress:{ type:'progress', kind:'year' } };
+    const samples = { dday:{ type:'dday', mode:'dday', title:'오픈', date: ymd(new Date(Date.now() + 30 * 86400000)) }, clock:{ type:'clock' }, world:{ type:'world', tz:'America/New_York' }, timer:{ type:'timer', minutes:25 }, progress:{ type:'progress', kind:'year' } };
     Object.entries(WIDGET_TYPES).forEach(([k, t]) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'wg-pick';
       b.append(widgetFace(samples[k]), Object.assign(document.createElement('span'), { textContent: t.name }), Object.assign(document.createElement('small'), { textContent: t.desc }));
@@ -2416,16 +2468,17 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (type === 'timer' && !st.minutes) st.minutes = 25;
     if (type === 'progress' && !st.kind) st.kind = 'year';
     if (type === 'dday' && !st.date) st.date = ymd(new Date(Date.now() + 7 * 86400000));
+    if (type === 'dday' && !st.mode) st.mode = 'dday';
     const ov = document.createElement('div'); ov.className = 'overlay';
     ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wdH" style="max-width:400px">
         <h3 id="wdH">${WIDGET_TYPES[type].name} ${isNew ? '추가' : '설정'}</h3>
-        <div class="preview-wrap" id="wdPrev" style="width:120px;margin:0 auto"></div>
+        <div class="preview-wrap" id="wdPrev" style="width:96px;margin:0 auto"></div>
         <div id="wdForm" style="display:flex;flex-direction:column;gap:14px"></div>
         <div class="dfoot">${isNew ? '' : '<button class="btn ghost danger" type="button" id="wdDel">삭제</button>'}<span class="sp"></span>
           <button class="btn" type="button" id="wdCancel">취소</button><button class="btn primary" type="button" id="wdOk">${isNew ? '추가' : '저장'}</button></div></div>`;
     document.body.append(ov);
     const q = s => ov.querySelector(s), form = q('#wdForm');
-    const prev = () => { const f = widgetFace(st); f.style.width = '120px'; q('#wdPrev').replaceChildren(f); };
+    const prev = () => { const f = widgetFace(st); f.style.width = '96px'; f.classList.add('wg-mid'); q('#wdPrev').replaceChildren(f); };
     const chips = (label, opts, key, cast = x => x) => {
       const g = document.createElement('div'); g.className = 'fgroup';
       g.innerHTML = `<div class="flabel"><span>${label}</span></div>`; const c = document.createElement('div'); c.className = 'chips'; c.setAttribute('role','radiogroup');
@@ -2435,11 +2488,24 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       g.append(c); form.append(g); return c;
     };
     if (type === 'dday'){
-      form.innerHTML = `<div class="fgroup"><label class="flabel" for="wdTitle"><span>이름</span></label><input class="field" id="wdTitle" maxlength="12" placeholder="예) 제품 출시"></div>
-        <div class="fgroup"><label class="flabel" for="wdDate"><span>날짜</span></label><input class="field" type="date" id="wdDate"></div>`;
-      q('#wdTitle').value = st.title || ''; q('#wdDate').value = st.date;
-      q('#wdTitle').addEventListener('input', e => { st.title = e.target.value; prev(); });
-      q('#wdDate').addEventListener('input', e => { st.date = e.target.value; prev(); });
+      const mc = chips('계산 방식', DATE_MODES.map(m => [m[0], m[1]]), 'mode');
+      const hint = document.createElement('div'); hint.className = 'ev-hint'; hint.style.marginTop = '-8px'; form.append(hint);
+      const f2 = document.createElement('div'); f2.style.cssText = 'display:flex;flex-direction:column;gap:14px'; form.append(f2);
+      const draw = () => {
+        const m = DATE_MODES.find(x => x[0] === st.mode); hint.textContent = m[2];
+        const dl = { dday:'목표일', since:'시작한 날', milestone:'시작한 날', work:'마감일', add:'기준일' }[st.mode];
+        const ph = { dday:'예) 제품 출시', since:'예) 프로젝트 시작', milestone:'예) 서비스 오픈', work:'예) 견적 마감', add:'예) 납품 예정' }[st.mode];
+        f2.innerHTML = `<div class="fgroup"><label class="flabel" for="wdTitle"><span>이름 (선택)</span></label><input class="field" id="wdTitle" maxlength="10" placeholder="${ph}"></div>
+          <div class="fgroup"><label class="flabel" for="wdDate"><span>${dl}</span></label><input class="field" type="date" id="wdDate"></div>
+          ${st.mode === 'add' ? '<div class="fgroup"><label class="flabel" for="wdOff"><span>며칠 뒤 (앞은 -)</span></label><input class="field" type="number" id="wdOff" step="1" placeholder="예) 30"></div>' : ''}`;
+        q('#wdTitle').value = st.title || ''; q('#wdDate').value = st.date || '';
+        q('#wdTitle').addEventListener('input', e => { st.title = e.target.value; prev(); });
+        q('#wdDate').addEventListener('input', e => { st.date = e.target.value; prev(); });
+        if (q('#wdOff')){ if (st.offset == null) st.offset = 30; q('#wdOff').value = st.offset; q('#wdOff').addEventListener('input', e => { st.offset = Number(e.target.value) || 0; prev(); }); }
+        prev();
+      };
+      mc.addEventListener('click', e => { if (!e.target.closest('.chip')) return; if (isNew && (st.mode === 'since' || st.mode === 'milestone')) st.date = ymd(today0()); setTimeout(draw, 0); });
+      draw();
     } else if (type === 'world') chips('도시', CITIES.filter(c => c[0] !== 'Asia/Seoul'), 'tz');
     else if (type === 'timer'){
       chips('시간', [[5,'5분'],[10,'10분'],[15,'15분'],[25,'25분'],[30,'30분'],[50,'50분'],[60,'60분']], 'minutes', Number);
@@ -2451,7 +2517,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
     q('#wdCancel').addEventListener('click', close);
     q('#wdOk').addEventListener('click', () => {
-      if (type === 'dday'){ st.title = (st.title || '').trim() || '디데이'; if (!st.date){ q('#wdDate').focus(); return; } }
+      if (type === 'dday'){ st.title = (st.title || '').trim(); if (!st.date){ q('#wdDate').focus(); return; } }
       if (type === 'timer' && w && w.minutes !== st.minutes){ st.running = false; st.left = null; }
       if (isNew) addWidget(st); else { Object.assign(w, st); save(); renderWidgets(); }
       close();
