@@ -175,7 +175,7 @@ button{cursor:pointer}
 .holi-tags{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
 .holi-tags:empty{display:none}
 .holi-tag{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FCE4E1;color:#B0362A}
-.holi-tag.memo{background:#FBF0DC;color:#8A5A12;font-weight:500}
+.holi-tag.kinen{background:#FBF0DC;color:#8A5A12;font-weight:500}
 .ev-box{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .ev-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .ev-date{font-size:13px;font-weight:700}
@@ -1972,7 +1972,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const key = calState.sel, list = eventsOn(key), ul = $('#evList'); ul.replaceChildren();
     $('#evDate').textContent = dateLabel(key);
     const tags = $('#holiTags'); tags.replaceChildren();
-    holidaysOn(key).forEach(h => tags.append(Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' memo'), textContent: h.name })));
+    holidaysOn(key).forEach(h => tags.append(Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' kinen'), textContent: h.name })));
     list.slice(0, MAX_EV_SHOWN).forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key))); ul.append(li); });
     $('#evEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
     const more = $('#evMore'); more.hidden = list.length <= MAX_EV_SHOWN;
