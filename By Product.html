@@ -151,13 +151,38 @@ button{cursor:pointer}
 .cal-grid .dow{font-size:11px;font-weight:600;color:var(--text-faint);padding:4px 0}
 .cal-grid .dow.sun,.cal-grid .day.sun{color:#C0392B}
 .cal-grid .dow.sat,.cal-grid .day.sat{color:#2A5A94}
-.cal-grid .day{position:relative;font-size:12.5px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--text)}
+.cal-grid .day{position:relative;font-size:12.5px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--text);border:0;background:transparent;padding:0;font-family:inherit;cursor:pointer}
+.cal-grid .day:hover{background:var(--surface-2)}
+.cal-grid .day.sel{box-shadow:inset 0 0 0 2px var(--accent);font-weight:700}
+.cal-grid .day .dots{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:center;gap:2px}
+.cal-grid .day .dots i{width:4px;height:4px;border-radius:50%}
+.cal-grid .day .dots .ev{background:var(--accent)}
+.cal-grid .day .dots .pg{background:var(--text-faint)}
+.cal-grid .day.today .dots i{background:#fff}
 .cal-grid .day.out{opacity:.3}
 .cal-grid .day.today{background:var(--accent);color:#fff;font-weight:700}
-.cal-grid .day.has::after{content:"";position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
-.cal-grid .day.today.has::after{background:#fff}
+.cal-grid .day.today:hover{background:var(--accent-strong)}
 .cal-legend{margin:8px 0 0;font-size:11.5px;color:var(--text-faint);display:flex;align-items:center;gap:6px}
-.cal-legend i{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+.cal-legend{gap:12px!important}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.cal-legend i{width:5px;height:5px;border-radius:50%;display:inline-block}
+.cal-legend .lg-ev{background:var(--accent)}
+.cal-legend .lg-pg{background:var(--text-faint)}
+.ev-box{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.ev-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.ev-date{font-size:13px;font-weight:700}
+.ev-add{border:1px dashed var(--border);background:transparent;color:var(--accent-strong);border-radius:7px;font-size:12px;padding:3px 8px}
+.ev-add:hover{border-color:var(--accent);background:var(--accent-tint)}
+.ev-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ev-item{width:100%;display:flex;align-items:center;gap:8px;border:0;background:var(--surface-2);border-radius:8px;padding:7px 9px;text-align:left;font-size:13px}
+.ev-item:hover{background:var(--accent-tint)}
+.ev-item .bar{width:3px;align-self:stretch;border-radius:2px;background:var(--accent);flex:none}
+.ev-item .tm{font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;flex:none;min-width:34px}
+.ev-item .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ev-empty{margin:2px 0 0;font-size:12.5px;color:var(--text-faint)}
+.ev-more{margin-top:6px;width:100%;border:0;background:transparent;color:var(--text-dim);font-size:12.5px;padding:5px;border-radius:7px}
+.ev-more:hover{background:var(--surface-2);color:var(--text)}
+.ev-all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto}
 .memo{width:100%;min-height:180px;max-height:50vh;resize:vertical;border:1px solid var(--border);border-radius:10px;background:#FFFDF6;color:#3A2A2E;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.65;outline:none}
 .memo:focus{border-color:var(--accent)}
 .memo-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums}
@@ -559,7 +584,13 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
             <button class="cal-today" type="button" id="calToday">오늘</button>
           </div>
           <div class="cal-grid" id="calGrid" role="grid" aria-label="달력"></div>
-          <p class="cal-legend"><i></i>이 프로젝트에 페이지를 저장한 날</p>
+          <p class="cal-legend"><span><i class="lg-ev"></i>일정</span><span><i class="lg-pg"></i>페이지 저장</span></p>
+          <div class="ev-box">
+            <div class="ev-head"><span class="ev-date" id="evDate"></span><button class="ev-add" type="button" id="evAdd">+ 일정 추가</button></div>
+            <ul class="ev-list" id="evList"></ul>
+            <p class="ev-empty" id="evEmpty">등록된 일정이 없어요.</p>
+            <button class="ev-more" type="button" id="evMore" hidden></button>
+          </div>
         </div>
       </section>
       <section class="widget" id="wMemo">
@@ -1828,8 +1859,13 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const set = new Set(), walk = n => { (n.pages || []).forEach(pg => { if (pg.savedAt){ const d = new Date(pg.savedAt); set.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`); } }); (n.subs || []).forEach(walk); };
     (cur && cur.tabs || []).forEach(walk); return set;
   }
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const eventsOf = () => cur ? (Array.isArray(cur.events) ? cur.events : (cur.events = [])) : [];
+  const eventsOn = key => eventsOf().filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0));
   function renderCal(){
+    if (!calState.sel) calState.sel = ymd(new Date());
     const { y, m } = calState, grid = $('#calGrid'); grid.replaceChildren();
+    const evDays = new Set(eventsOf().map(e => e.date));
     $('#calTitle').textContent = `${y}년 ${m + 1}월`;
     ['일','월','화','수','목','금','토'].forEach((d, i) => { const e = document.createElement('div'); e.className = 'dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''); e.textContent = d; grid.append(e); });
     const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
@@ -1837,18 +1873,139 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const weeks = Math.ceil((first.getDay() + new Date(y, m + 1, 0).getDate()) / 7);
     for (let i = 0; i < weeks * 7; i++){
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-      const e = document.createElement('div'); e.setAttribute('role','gridcell');
-      const dow = d.getDay();
+      const e = document.createElement('button'); e.type = 'button'; e.setAttribute('role','gridcell');
+      const dow = d.getDay(), key = ymd(d);
       e.className = 'day' + (d.getMonth() !== m ? ' out' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '')
-        + (d.toDateString() === now.toDateString() ? ' today' : '') + (has.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`) ? ' has' : '');
+        + (d.toDateString() === now.toDateString() ? ' today' : '') + (key === calState.sel ? ' sel' : '');
       e.textContent = d.getDate();
-      e.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일`);
+      const hasEv = evDays.has(key), hasPg = has.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+      if (hasEv || hasPg){ const dots = document.createElement('span'); dots.className = 'dots'; if (hasEv) dots.append(Object.assign(document.createElement('i'), { className:'ev' })); if (hasPg) dots.append(Object.assign(document.createElement('i'), { className:'pg' })); e.append(dots); }
+      const n = hasEv ? eventsOn(key).length : 0;
+      e.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일${n ? `, 일정 ${n}개` : ''}`);
+      if (key === calState.sel) e.setAttribute('aria-selected', 'true');
+      e.addEventListener('click', () => {
+        if (calState.sel === key) { openEventDialog(null, key); return; } // 선택된 날짜를 한 번 더 누르면 바로 일정 등록
+        calState.sel = key;
+        if (d.getMonth() !== m){ calState.y = d.getFullYear(); calState.m = d.getMonth(); }
+        renderCal();
+      });
       grid.append(e);
     }
+    renderEventList();
   }
+  const DOW = ['일','월','화','수','목','금','토'];
+  const keyToDate = k => { const [a, b, c] = k.split('-').map(Number); return new Date(a, b - 1, c); };
+  const dateLabel = k => { const d = keyToDate(k); return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW[d.getDay()]})${ymd(new Date()) === k ? ' · 오늘' : ''}`; };
+  function evItem(ev, onClick){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ev-item';
+    const bar = document.createElement('span'); bar.className = 'bar';
+    const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = ev.time || '종일';
+    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = ev.title; b.title = ev.title + (ev.memo ? '\n' + ev.memo : '');
+    b.append(bar, tm, tt); b.addEventListener('click', onClick);
+    return b;
+  }
+  const MAX_EV_SHOWN = 3;
+  function renderEventList(){
+    const key = calState.sel, list = eventsOn(key), ul = $('#evList'); ul.replaceChildren();
+    $('#evDate').textContent = dateLabel(key);
+    list.slice(0, MAX_EV_SHOWN).forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key))); ul.append(li); });
+    $('#evEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
+    const more = $('#evMore'); more.hidden = list.length <= MAX_EV_SHOWN;
+    more.textContent = `더보기 (+${list.length - MAX_EV_SHOWN}) · 전체 ${list.length}개`;
+  }
+  $('#evAdd').addEventListener('click', () => openEventDialog(null, calState.sel));
+  $('#evMore').addEventListener('click', () => openAllEvents(calState.sel));
+
+  // 일정 등록·수정 팝업
+  function openEventDialog(ev, key){
+    const isNew = !ev, last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="evTitleH">
+        <h3 id="evTitleH">${isNew ? '일정 등록' : '일정 수정'}</h3>
+        <div class="fgroup"><label class="flabel" for="evDateIn"><span>날짜</span></label>
+          <div style="display:flex;gap:8px"><input class="field" type="date" id="evDateIn" style="flex:1">
+          <input class="field" type="time" id="evTimeIn" style="width:130px" aria-label="시간 (선택)"></div>
+          <span style="font-size:12px;color:var(--text-faint)">시간을 비워 두면 ‘종일’ 일정이 돼요.</span></div>
+        <div class="fgroup"><label class="flabel" for="evNameIn"><span>일정 제목</span><span class="cnt" id="evCnt"></span></label>
+          <input class="field" id="evNameIn" maxlength="50" autocomplete="off" placeholder="예) 고객사 미팅, 견적서 마감"></div>
+        <div class="fgroup"><label class="flabel" for="evMemoIn"><span>메모 (선택)</span></label>
+          <textarea class="field" id="evMemoIn" maxlength="500" style="min-height:80px" placeholder="장소, 준비물 등"></textarea></div>
+        <div class="dfoot">
+          ${isNew ? '' : '<button class="btn ghost danger" type="button" id="evDel">삭제</button>'}
+          <span class="sp"></span>
+          <button class="btn" type="button" id="evCancel">취소</button>
+          <button class="btn primary" type="button" id="evSave">${isNew ? '등록' : '저장'}</button>
+        </div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    q('#evDateIn').value = ev ? ev.date : key; q('#evTimeIn').value = ev ? (ev.time || '') : '';
+    q('#evNameIn').value = ev ? ev.title : ''; q('#evMemoIn').value = ev ? (ev.memo || '') : '';
+    const cnt = () => { q('#evCnt').textContent = `${q('#evNameIn').value.length}/50`; }; cnt();
+    q('#evNameIn').addEventListener('input', cnt);
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape'){ e.stopPropagation(); close(); } if (e.key === 'Enter' && e.target.id === 'evNameIn' && !e.isComposing){ e.preventDefault(); submit(); } }
+    function submit(){
+      const title = q('#evNameIn').value.trim(), date = q('#evDateIn').value;
+      if (!title){ q('#evNameIn').focus(); q('#evNameIn').style.borderColor = 'var(--danger)'; return; }
+      if (!date){ q('#evDateIn').focus(); return; }
+      const data = { date, time: q('#evTimeIn').value || '', title, memo: q('#evMemoIn').value.trim() };
+      if (isNew) eventsOf().push({ id: uid('ev_'), createdAt: Date.now(), ...data }); else Object.assign(ev, data);
+      calState.sel = date; const d = keyToDate(date); calState.y = d.getFullYear(); calState.m = d.getMonth();
+      touch(); save(); close(); renderCal();
+      if ($('.overlay .ev-all')) refreshAll();
+    }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#evCancel').addEventListener('click', close);
+    q('#evSave').addEventListener('click', submit);
+    const del = q('#evDel');
+    if (del) del.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+      cur.events = eventsOf().filter(x => x !== ev); touch(); save(); close(); renderCal(); if ($('.overlay .ev-all')) refreshAll();
+    }));
+    setTimeout(() => q('#evNameIn').focus(), 0);
+  }
+  // 더보기: 그날 일정 전체
+  let refreshAll = () => {};
+  function openAllEvents(key){
+    const last = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="evAllH">
+        <h3 id="evAllH"></h3>
+        <ul class="ev-all" id="evAllList"></ul>
+        <div class="dfoot"><button class="btn" type="button" id="evAllAdd">+ 일정 추가</button><span class="sp"></span>
+          <button class="btn primary" type="button" id="evAllClose">닫기</button></div>
+      </div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    refreshAll = () => {
+      const list = eventsOn(key);
+      q('#evAllH').textContent = `${dateLabel(key)} 일정 ${list.length}개`;
+      const ul = q('#evAllList'); ul.replaceChildren();
+      list.forEach(ev => { const li = document.createElement('li'); const b = evItem(ev, () => openEventDialog(ev, key));
+        if (ev.memo){ const m = document.createElement('span'); m.style.cssText = 'display:block;font-size:12px;color:var(--text-faint);margin-top:2px;white-space:normal'; m.textContent = ev.memo; b.querySelector('.tt').after(m); b.style.flexWrap = 'wrap'; m.style.flexBasis = '100%'; m.style.paddingLeft = '45px'; }
+        li.append(b); ul.append(li); });
+      if (!list.length) ul.innerHTML = '<li class="ev-empty">등록된 일정이 없어요.</li>';
+    };
+    refreshAll();
+    function close(){ ov.remove(); refreshAll = () => {}; document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape' && document.querySelectorAll('.overlay').length === 1){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#evAllClose').addEventListener('click', close);
+    q('#evAllAdd').addEventListener('click', () => openEventDialog(null, key));
+  }
+  // 날짜가 바뀌면(자정이 지나면) 오늘 일정으로 갱신
+  let lastDay = ymd(new Date());
+  setInterval(() => {
+    const t = ymd(new Date());
+    if (t !== lastDay){ if (calState.sel === lastDay) calState.sel = t; lastDay = t; if (!$('#sidePanel').hidden) renderCal(); }
+  }, 60000);
   $('#calPrev').addEventListener('click', () => { calState.m--; if (calState.m < 0){ calState.m = 11; calState.y--; } renderCal(); });
   $('#calNext').addEventListener('click', () => { calState.m++; if (calState.m > 11){ calState.m = 0; calState.y++; } renderCal(); });
-  $('#calToday').addEventListener('click', () => { const n = new Date(); calState.y = n.getFullYear(); calState.m = n.getMonth(); renderCal(); });
+  $('#calToday').addEventListener('click', () => { const n = new Date(); calState.y = n.getFullYear(); calState.m = n.getMonth(); calState.sel = ymd(n); renderCal(); });
 
   let memoT = null, memoOwner = null;
   function renderMemo(){
