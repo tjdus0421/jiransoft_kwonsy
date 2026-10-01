@@ -208,7 +208,7 @@ button{cursor:pointer}
 .saved{font-size:12.5px;color:var(--text-faint)}
 .editor-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
 .editor-box:focus-within{border-color:var(--accent)}
-.editor-head{border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.editor-head{min-height:50px;border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--surface-2)}
 .eh-label{font-size:12.5px;font-weight:600;color:var(--text-dim)}
 .eh-saved{font-size:12.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;white-space:nowrap}
 .editor{display:block;width:100%;min-height:320px;border:0;background:transparent;outline:none;resize:none;font-size:15.5px;line-height:1.8;padding:16px 18px 20px;overflow:hidden}
@@ -230,8 +230,16 @@ button{cursor:pointer}
 .rte{min-height:320px;overflow-wrap:anywhere;cursor:text}
 .btn.sm{padding:6px 12px;font-size:13px}
 .pg-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px}
-.pg-count{font-size:13px;color:var(--text-faint)}
-.pg-items{list-style:none;margin:0;padding:0 8px 8px;display:flex;flex-direction:column}
+.pg-top .sp{flex:1}
+.pager{display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 12px 16px;flex-wrap:wrap}
+.pager button{min-width:32px;height:32px;padding:0 8px;border:1px solid transparent;background:transparent;border-radius:8px;font-size:13.5px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.pager button:hover:not(:disabled){background:var(--surface-2);color:var(--text)}
+.pager button.cur{background:var(--accent);color:#fff;font-weight:700}
+.pager button.nav{font-size:16px}
+.pager button:disabled{opacity:.35;cursor:default}
+.pg-meta{padding:0 22px;font-size:12.5px;color:var(--text-faint)}
+.pg-meta:empty{display:none}
+.pg-items{list-style:none;margin:0;padding:6px 8px 8px;display:flex;flex-direction:column}
 .pg-items li+li{border-top:1px solid var(--border)}
 .pg-row{width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:11px 10px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center}
 .pg-row:hover{background:var(--surface-2)}
@@ -240,7 +248,7 @@ button{cursor:pointer}
 .pg-row .d{font-size:12px;color:var(--text-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 .pg-row .x{grid-column:2 / span 2;font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pg-row .x:empty{display:none}
-.pg-empty{margin:0;padding:6px 18px 22px;font-size:13.5px;color:var(--text-faint)}
+.pg-empty{margin:0;padding:18px 18px 22px;font-size:13.5px;color:var(--text-faint)}
 .pg-bar{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border)}
 .pg-bar .sp,.pg-foot .sp{flex:1}
 .pg-title{font-size:24px;font-weight:700;margin:0;padding:20px 22px 4px;overflow-wrap:anywhere}
@@ -387,7 +395,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       <div class="search-wrap">
         <div class="search">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
-          <input id="q" type="text" enterkeyhint="search" placeholder="이 프로젝트에서 검색 (탭 · 하위 탭 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
+          <input id="q" type="text" enterkeyhint="search" placeholder="이 프로젝트에서 검색 (탭 · 페이지 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
           <span class="qcount" id="qcount"></span>
           <button class="qclear" id="qclear" type="button" aria-label="검색어 지우기" hidden>✕</button>
         </div>
@@ -426,12 +434,13 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       <div class="editor-box" id="editorBox">
         <div class="editor-head">
           <span class="eh-label" id="ehLabel">페이지</span>
-          <span class="eh-saved" id="lastSaved"></span>
+          <span class="eh-saved" id="lastSaved" hidden></span>
+          <button class="btn primary sm" type="button" id="newPage">+ 새 페이지</button>
         </div>
         <!-- 페이지 목록 -->
         <div class="pg-listw" id="pgListW">
-          <div class="pg-top"><span class="pg-count" id="pgCount"></span><button class="btn primary sm" type="button" id="newPage">+ 새 페이지</button></div>
-          <ul class="pg-items" id="pgItems"></ul>
+                    <ul class="pg-items" id="pgItems"></ul>
+          <nav class="pager" id="pager" aria-label="페이지 목록 이동" hidden></nav>
           <p class="pg-empty" id="pgEmpty">아직 페이지가 없어요. ‘+ 새 페이지’로 알아본 내용을 작성하고 저장하면 여기에 페이지로 쌓여요.</p>
         </div>
         <!-- 페이지 읽기 -->
@@ -442,6 +451,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
             <button class="btn ghost danger" type="button" id="pgDel">삭제</button>
           </div>
           <h2 class="pg-title" id="pgTitle"></h2>
+          <div class="pg-meta" id="pgMeta"></div>
           <div class="rte pg-content" id="pgContent"></div>
         </div>
         <!-- 페이지 작성·수정 -->
@@ -1046,7 +1056,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     ed.childNodes.forEach(n => { const t = (n.innerText !== undefined ? n.innerText : n.textContent) || ''; parts.push(t.replace(/\n+$/, '')); });
     return parts.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
-  function syncEditor(){ ui.dirty = true; $('#lastSaved').textContent = '저장 전 · 수정 중'; }
+  function syncEditor(){ ui.dirty = true; }
 
   // ---------- 페이지 (탭마다 여러 개, 저장하면 페이지로 생성) ----------
   const ui = { mode:'list', page:null, isNew:false, dirty:false, node:null };
@@ -1054,16 +1064,24 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   const pageIcon = '<svg viewBox="0 0 16 16"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.5 1.8V5h3M6 8h4.5M6 10.5h4.5"/></svg>';
   function setMode(m){
     ui.mode = m;
+    $('#newPage').hidden = m !== 'list';
     $('#pgListW').hidden = m !== 'list'; $('#pgRead').hidden = m !== 'read'; $('#pgEditW').hidden = m !== 'edit';
-    $('#ehLabel').textContent = m === 'list' ? '페이지' : m === 'edit' ? (ui.isNew ? '새 페이지 작성' : '페이지 수정') : '페이지';
+    $('#ehLabel').textContent = m === 'edit' ? (ui.isNew ? '새 페이지 작성' : '페이지 수정') : `${(cur && cur.name) || '프로젝트'} 목록`;
     showLastSaved();
   }
-  function showPageList(){
-    const x = target(); ui.node = x; ui.page = null; ui.dirty = false; ui.isNew = false;
-    const list = [...pagesOf(x)].sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  const PER_PAGE = 10, PAGE_WINDOW = 5;
+  function showPageList(no){
+    const x = target();
+    if (ui.node !== x) ui.pageNo = 1;          // 다른 탭으로 오면 1쪽부터
+    if (no) ui.pageNo = no;
+    ui.node = x; ui.page = null; ui.dirty = false; ui.isNew = false;
+    const all = [...pagesOf(x)].sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    const total = Math.max(1, Math.ceil(all.length / PER_PAGE));
+    ui.pageNo = Math.min(Math.max(1, ui.pageNo || 1), total);
+    const list = all.slice((ui.pageNo - 1) * PER_PAGE, ui.pageNo * PER_PAGE);
     const ul = $('#pgItems'); ul.replaceChildren();
-    $('#pgCount').textContent = list.length ? `페이지 ${list.length}개` : '';
-    $('#pgEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
+    $('#pgEmpty').hidden = all.length > 0; ul.hidden = all.length === 0;
+    renderPager(total);
     list.forEach(pg => {
       const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.className = 'pg-row';
       b.innerHTML = pageIcon;
@@ -1075,9 +1093,28 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     });
     setMode('list');
   }
+  function renderPager(total){
+    const nav = $('#pager'); nav.replaceChildren(); nav.hidden = total <= 1;
+    if (total <= 1) return;
+    const curNo = ui.pageNo;
+    const start = Math.floor((curNo - 1) / PAGE_WINDOW) * PAGE_WINDOW + 1, end = Math.min(total, start + PAGE_WINDOW - 1);
+    const btn = (label, no, aria, opts = {}) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.setAttribute('aria-label', aria);
+      if (opts.cur){ b.className = 'cur'; b.setAttribute('aria-current', 'page'); }
+      if (opts.nav) b.classList.add('nav');
+      if (opts.disabled) b.disabled = true; else b.addEventListener('click', () => { showPageList(no); $('#editorBox').scrollIntoView({ block:'nearest' }); });
+      nav.append(b);
+    };
+    btn('«', 1, '처음', { nav:true, disabled: curNo === 1 });
+    btn('‹', curNo - 1, '이전', { nav:true, disabled: curNo === 1 });
+    for (let i = start; i <= end; i++) btn(String(i), i, `${i}쪽`, { cur: i === curNo });
+    btn('›', curNo + 1, '다음', { nav:true, disabled: curNo === total });
+    btn('»', total, '마지막', { nav:true, disabled: curNo === total });
+  }
   function openPage(pg){
     ui.page = pg; ui.isNew = false; ui.dirty = false;
     $('#pgTitle').textContent = pg.title || '제목 없음';
+    $('#pgMeta').textContent = pg.savedAt ? `최종 저장 ${fmtSaved(pg.savedAt)}` : '';
     $('#pgContent').innerHTML = pg.html || (pg.body ? textToHtml(pg.body) : '<p style="color:var(--text-faint)">내용이 없어요.</p>');
     $('#pgContent').querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
     setMode('read');
@@ -1105,7 +1142,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (!silent) openPage(ui.page);
   }
   $('#newPage').addEventListener('click', () => editPage(null));
-  $('#pgBack').addEventListener('click', showPageList);
+  $('#pgBack').addEventListener('click', () => showPageList());
   $('#pgEdit').addEventListener('click', () => editPage(ui.page));
   $('#pgDel').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
     const x = ui.node || target(); if (!x || !ui.page) return;
