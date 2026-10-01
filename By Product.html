@@ -168,6 +168,14 @@ button{cursor:pointer}
 .cal-legend i{width:5px;height:5px;border-radius:50%;display:inline-block}
 .cal-legend .lg-ev{background:var(--accent)}
 .cal-legend .lg-pg{background:var(--text-faint)}
+.cal-legend .lg-holi{color:#C0392B;font-weight:600}
+.cal-grid .day.holi{color:#C0392B;font-weight:600}
+.cal-grid .day.memo-day:not(.holi)::before{content:"";position:absolute;top:3px;right:5px;width:4px;height:4px;border-radius:50%;background:#E0A040}
+.cal-grid .day.today.holi{color:#fff}
+.holi-tags{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
+.holi-tags:empty{display:none}
+.holi-tag{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FCE4E1;color:#B0362A}
+.holi-tag.memo{background:#FBF0DC;color:#8A5A12;font-weight:500}
 .ev-box{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .ev-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .ev-date{font-size:13px;font-weight:700}
@@ -584,9 +592,10 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
             <button class="cal-today" type="button" id="calToday">오늘</button>
           </div>
           <div class="cal-grid" id="calGrid" role="grid" aria-label="달력"></div>
-          <p class="cal-legend"><span><i class="lg-ev"></i>일정</span><span><i class="lg-pg"></i>페이지 저장</span></p>
+          <p class="cal-legend"><span class="lg-holi">공휴일</span><span><i class="lg-ev"></i>일정</span><span><i class="lg-pg"></i>페이지 저장</span></p>
           <div class="ev-box">
             <div class="ev-head"><span class="ev-date" id="evDate"></span><button class="ev-add" type="button" id="evAdd">+ 일정 추가</button></div>
+            <div class="holi-tags" id="holiTags"></div>
             <ul class="ev-list" id="evList"></ul>
             <p class="ev-empty" id="evEmpty">등록된 일정이 없어요.</p>
             <button class="ev-more" type="button" id="evMore" hidden></button>
@@ -1860,6 +1869,57 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     (cur && cur.tabs || []).forEach(walk); return set;
   }
   const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  // ---------- 대한민국 공휴일·기념일 ----------
+  // 음력 공휴일(설날·추석·부처님오신날)은 해마다 날짜가 달라 2025~2030년만 넣어 둠
+  const LUNAR = {
+    seol:    { 2025:'01-29', 2026:'02-17', 2027:'02-07', 2028:'01-27', 2029:'02-13', 2030:'02-03' },
+    chuseok: { 2025:'10-06', 2026:'09-25', 2027:'09-15', 2028:'10-03', 2029:'09-22', 2030:'09-12' },
+    buddha:  { 2025:'05-05', 2026:'05-24', 2027:'05-13', 2028:'05-02', 2029:'05-20', 2030:'05-09' },
+  };
+  const ELECTIONS = { '2026-06-03':'전국동시지방선거', '2028-04-12':'국회의원 선거' };
+  // 공휴일이 아닌 기념일
+  const MEMORIAL = { '04-05':'식목일', '05-08':'어버이날', '05-15':'스승의 날', '06-25':'6·25 전쟁일', '10-01':'국군의 날', '11-11':'농업인의 날' };
+  const holiCache = {};
+  function holidaysOf(y){
+    if (holiCache[y]) return holiCache[y];
+    const map = {}; // key → [{name, off, sub}]
+    const add = (key, name, off = true) => { (map[key] = map[key] || []).push({ name, off }); };
+    const k = (mmdd) => `${y}-${mmdd}`;
+    const shift = (key, n) => { const d = keyToDate(key); d.setDate(d.getDate() + n); return ymd(d); };
+    // 날짜 고정 공휴일: [월-일, 이름, 대체공휴일 적용 시작 연도(없으면 미적용), 공휴일 시작 연도]
+    const FIXED = [['01-01','신정',null,0],['03-01','삼일절',2022,0],['05-01','노동절',2026,2026],['05-05','어린이날',2014,0],['06-06','현충일',null,0],
+                   ['07-17','제헌절',2026,2026],['08-15','광복절',2021,0],['10-03','개천절',2021,0],['10-09','한글날',2021,0],['12-25','성탄절',2023,0]];
+    const items = []; // 대체공휴일 판단용
+    FIXED.forEach(([md, name, subFrom, from]) => { if (y < from) return; add(k(md), name); items.push({ keys:[k(md)], name, sub: subFrom && y >= subFrom, lunar:false }); });
+    if (LUNAR.buddha[y]){ add(k(LUNAR.buddha[y]), '부처님오신날'); items.push({ keys:[k(LUNAR.buddha[y])], name:'부처님오신날', sub: y >= 2023, lunar:false }); }
+    [['seol','설날'],['chuseok','추석']].forEach(([id, name]) => {
+      if (!LUNAR[id][y]) return; const c = k(LUNAR[id][y]), keys = [shift(c, -1), c, shift(c, 1)];
+      keys.forEach((kk, i) => add(kk, i === 1 ? name : `${name} 연휴`)); items.push({ keys, name, sub: true, lunar:true });
+    });
+    Object.entries(ELECTIONS).forEach(([kk, name]) => { if (kk.startsWith(y + '-')) add(kk, name); });
+    // 대체공휴일: 설날·추석은 일요일 또는 다른 공휴일과 겹칠 때, 나머지는 토·일요일 또는 다른 공휴일과 겹칠 때
+    const isOff = kk => (map[kk] || []).some(h => h.off);
+    const weekend = kk => { const w = keyToDate(kk).getDay(); return w === 0 || w === 6; };
+    const counted = new Set(), subs = [];
+    items.filter(it => it.sub).sort((a, b) => a.keys[0].localeCompare(b.keys[0])).forEach(it => {
+      const trig = it.keys.some(kk => {
+        const w = keyToDate(kk).getDay();
+        const overlap = (map[kk] || []).filter(h => h.off).length > 1 && !counted.has(kk);
+        if (overlap){ counted.add(kk); return true; }
+        return it.lunar ? w === 0 : (w === 0 || w === 6);
+      });
+      if (trig) subs.push(it);
+    });
+    subs.forEach(it => {
+      let d = it.keys[it.keys.length - 1];
+      do { d = shift(d, 1); } while (weekend(d) || isOff(d));
+      add(d, `대체공휴일(${it.name})`);
+    });
+    Object.entries(MEMORIAL).forEach(([md, name]) => add(k(md), name, false));
+    return (holiCache[y] = map);
+  }
+  const holidaysOn = key => (holidaysOf(+key.slice(0, 4))[key] || []);
   const eventsOf = () => cur ? (Array.isArray(cur.events) ? cur.events : (cur.events = [])) : [];
   const eventsOn = key => eventsOf().filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0));
   function renderCal(){
@@ -1878,10 +1938,13 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       e.className = 'day' + (d.getMonth() !== m ? ' out' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '')
         + (d.toDateString() === now.toDateString() ? ' today' : '') + (key === calState.sel ? ' sel' : '');
       e.textContent = d.getDate();
+      const hs = holidaysOn(key), off = hs.filter(h => h.off);
+      if (off.length) e.classList.add('holi'); else if (hs.length) e.classList.add('memo-day');
+      if (hs.length) e.title = hs.map(h => h.name).join(', ');
       const hasEv = evDays.has(key), hasPg = has.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
       if (hasEv || hasPg){ const dots = document.createElement('span'); dots.className = 'dots'; if (hasEv) dots.append(Object.assign(document.createElement('i'), { className:'ev' })); if (hasPg) dots.append(Object.assign(document.createElement('i'), { className:'pg' })); e.append(dots); }
       const n = hasEv ? eventsOn(key).length : 0;
-      e.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일${n ? `, 일정 ${n}개` : ''}`);
+      e.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일${hs.length ? ', ' + hs.map(h => h.name).join(', ') : ''}${n ? `, 일정 ${n}개` : ''}`);
       if (key === calState.sel) e.setAttribute('aria-selected', 'true');
       e.addEventListener('click', () => {
         if (calState.sel === key) { openEventDialog(null, key); return; } // 선택된 날짜를 한 번 더 누르면 바로 일정 등록
@@ -1908,6 +1971,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   function renderEventList(){
     const key = calState.sel, list = eventsOn(key), ul = $('#evList'); ul.replaceChildren();
     $('#evDate').textContent = dateLabel(key);
+    const tags = $('#holiTags'); tags.replaceChildren();
+    holidaysOn(key).forEach(h => tags.append(Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' memo'), textContent: h.name })));
     list.slice(0, MAX_EV_SHOWN).forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key))); ul.append(li); });
     $('#evEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
     const more = $('#evMore'); more.hidden = list.length <= MAX_EV_SHOWN;
