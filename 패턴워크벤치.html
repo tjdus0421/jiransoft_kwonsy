@@ -426,7 +426,6 @@
     gap:8px;
     flex-wrap:wrap;
   }
-  .th-custom-add .th-name{ flex:0 1 160px; }
   .th-custom-add .th-value{
     flex:1 1 240px;
     min-width:180px;
@@ -775,7 +774,6 @@
       <div>
         <span class="field-label">직접 입력 — 실제 탐지되는 값을 그대로 넣기</span>
         <div class="th-custom-add">
-          <input type="text" class="th-name" id="thCustomName" placeholder="항목명 (예: 주민등록번호)" autocomplete="off" spellcheck="false">
           <textarea class="th-value" id="thCustomValue" rows="1" placeholder="값 — 한 줄에 하나씩, 여러 줄 붙여넣기 가능" spellcheck="false"></textarea>
           <button class="btn sm" id="thCustomAddBtn" type="button">추가</button>
         </div>
@@ -23251,7 +23249,6 @@ var src_default = GIFEncoder;
     '본 문서는 DLP 탐지 검증을 위한 테스트 문서입니다. 아래 내용은 실제 개인정보가 아니며 임의로 생성된 값입니다.';
 
   const thItemChipsEl    = document.getElementById('thItemChips');
-  const thCustomName     = document.getElementById('thCustomName');
   const thCustomValue    = document.getElementById('thCustomValue');
   const thCustomListEl   = document.getElementById('thCustomList');
   const thCustomNoteEl   = document.getElementById('thCustomNote');
@@ -23355,10 +23352,6 @@ var src_default = GIFEncoder;
       use.appendChild(chk);
       use.appendChild(document.createTextNode(' 사용'));
 
-      const tag = document.createElement('span');
-      tag.className = 'tag';
-      tag.textContent = item.label;
-
       const val = document.createElement('span');
       val.className = 'val';
       val.textContent = item.example;
@@ -23374,7 +23367,6 @@ var src_default = GIFEncoder;
       });
 
       row.appendChild(use);
-      row.appendChild(tag);
       row.appendChild(val);
       row.appendChild(del);
       thCustomListEl.appendChild(row);
@@ -23382,7 +23374,6 @@ var src_default = GIFEncoder;
   }
 
   function thAddCustomItems(){
-    const rawName = thCustomName.value.trim();
     const raw = thCustomValue.value;
     const values = raw.split(/\r?\n/).map(v => v.trim()).filter(v => v !== '');
     if (!values.length){
@@ -23393,7 +23384,7 @@ var src_default = GIFEncoder;
       thCustomSeq++;
       thCustomItems.push({
         id: 'custom_' + thCustomSeq,
-        label: rawName || '직접 입력',
+        label: '직접 입력',
         example: v,
         on: true,
       });
@@ -23418,7 +23409,10 @@ var src_default = GIFEncoder;
       const item = items[i % items.length];
       const value = thValueFor(item);
       const no = String(i + 1).padStart(String(count).length, '0');
-      lines.push(thLabelChk.checked ? (no + '. ' + item.label + ': ' + value) : value);
+      // 직접 입력 값은 항목명이 없으므로 번호만 붙인다. 뜻 없는 "직접 입력:"
+      // 접두사가 테스트 문서에 섞여 들어가지 않게 하기 위함이다.
+      const prefix = item.custom ? (no + '. ') : (no + '. ' + item.label + ': ');
+      lines.push(thLabelChk.checked ? (prefix + value) : value);
       if (useBg && bg && (i + 1) % 5 === 0 && i + 1 < count) lines.push(bg);
     }
     return lines.join('\n');
@@ -23531,9 +23525,6 @@ var src_default = GIFEncoder;
   });
 
   document.getElementById('thCustomAddBtn').addEventListener('click', thAddCustomItems);
-  thCustomName.addEventListener('keydown', e => {
-    if (e.key === 'Enter'){ e.preventDefault(); thAddCustomItems(); }
-  });
   // 값 칸은 여러 줄 입력을 받아야 하므로 Enter는 줄바꿈으로 두고,
   // Ctrl(⌘)+Enter일 때만 바로 추가한다.
   thCustomValue.addEventListener('keydown', e => {
