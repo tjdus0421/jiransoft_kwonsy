@@ -372,6 +372,65 @@ button{cursor:pointer}
 .linkbar .btn{padding:6px 12px}
 .rte{min-height:320px;overflow-wrap:anywhere;cursor:text}
 .btn.sm{padding:6px 12px;font-size:13px}
+.eh-left{display:flex;align-items:center;gap:12px;min-width:0;flex-wrap:wrap}
+.vsw{display:inline-flex;gap:2px;padding:3px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.vsw button{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:600;color:var(--text-dim)}
+.vsw button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.vsw button:hover{color:var(--text);background:var(--surface-2)}
+.vsw button[aria-selected="true"]{background:var(--accent);color:#fff}
+.tcal{padding:12px 16px 18px}
+.tcal-top{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.tcal-top .sp{flex:1}
+.tcal-title{font-size:16px;font-weight:700;min-width:110px;text-align:center;font-variant-numeric:tabular-nums}
+.tcal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--border);border-left:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tcal-grid .dw{padding:6px 0;text-align:center;font-size:12px;font-weight:600;color:var(--text-faint);background:var(--surface-2);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.tcal-grid .dw.sun{color:#C0392B}.tcal-grid .dw.sat{color:#2A5A94}
+.tc-cell{min-height:92px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 5px 5px;display:flex;flex-direction:column;gap:2px;cursor:pointer;min-width:0;background:var(--surface)}
+.tc-cell:hover{background:var(--surface-2)}
+.tc-cell.out{background:var(--bg)}.tc-cell.out .tc-num{opacity:.4}
+.tc-head{display:flex;align-items:center;gap:4px;min-width:0}
+.tc-num{font-size:12px;font-weight:600;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none;font-variant-numeric:tabular-nums}
+.tc-cell.sun .tc-num,.tc-cell.holi .tc-num{color:#C0392B}.tc-cell.sat:not(.holi) .tc-num{color:#2A5A94}
+.tc-cell.today .tc-num{background:var(--accent);color:#fff}
+.tc-hname{font-size:10px;color:#C0392B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tc-hname.kinen{color:#A0782A}
+.tc-ev{font-size:11px;line-height:1.35;padding:1px 5px;border-radius:4px;background:var(--accent-tint);color:var(--accent-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;text-align:left;width:100%}
+.tc-ev:hover{background:var(--accent);color:#fff}
+.tc-ev .t{font-variant-numeric:tabular-nums;opacity:.8;margin-right:3px}
+.tc-more{font-size:10.5px;color:var(--text-faint);border:0;background:transparent;text-align:left;padding:0 5px}
+.tc-more:hover{color:var(--accent-strong)}
+@media (max-width:640px){.tc-cell{min-height:64px}.tc-ev{font-size:10px}.tc-hname{display:none}}
+.todo{padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px}
+.todo-sum{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.todo-bar{flex:1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.todo-bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .2s}
+.todo-add{display:flex;gap:6px}
+.todo-add #tdText{flex:1}
+.todo-add #tdDue{width:150px;flex:none}
+@media (max-width:560px){.todo-add{flex-wrap:wrap}.todo-add #tdDue{flex:1}}
+.todo-filter{display:flex;align-items:center;gap:4px}
+.todo-filter .sp{flex:1}
+.todo-filter button{border:0;background:transparent;border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--text-dim)}
+.todo-filter button:hover{background:var(--surface-2)}
+.todo-filter button[aria-selected="true"]{background:var(--accent-tint);color:var(--accent-strong);font-weight:700}
+.todo-filter .td-clear{color:var(--text-faint)}
+.todo-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.td-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border);border-radius:6px}
+.td-item:hover{background:var(--surface-2)}
+.td-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:none;cursor:pointer;margin:0}
+.td-text{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere;cursor:text;border-radius:4px;padding:1px 3px;outline:none}
+.td-text:focus{background:var(--surface);box-shadow:0 0 0 1px var(--accent)}
+.td-item.done .td-text{color:var(--text-faint);text-decoration:line-through}
+.td-due{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--text-dim);flex:none;font-variant-numeric:tabular-nums;border:0}
+.td-due.soon{background:#FBF0DC;color:#8A5A12}
+.td-due.over{background:#FCE4E1;color:#B0362A}
+.td-item.done .td-due{opacity:.5}
+.td-due-empty{opacity:0}
+.td-item:hover .td-due-empty,.td-item:focus-within .td-due-empty{opacity:1}
+.td-x{border:0;background:transparent;color:var(--text-faint);width:24px;height:24px;border-radius:6px;opacity:0;flex:none}
+.td-item:hover .td-x,.td-item:focus-within .td-x{opacity:1}
+@media (hover:none){.td-x,.td-due-empty{opacity:1}}
+.td-x:hover{background:var(--danger-tint);color:var(--danger)}
 .pg-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px}
 .pg-top .sp{flex:1}
 .pager{display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 12px 16px;flex-wrap:wrap}
@@ -587,9 +646,43 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       </div>
       <div class="editor-box" id="editorBox">
         <div class="editor-head">
-          <span class="eh-label" id="ehLabel">페이지</span>
+          <div class="eh-left">
+            <div class="vsw" id="viewSw" role="tablist" aria-label="이 탭의 기능">
+              <button type="button" role="tab" data-v="pages"><svg viewBox="0 0 16 16"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.5 1.8V5h3"/></svg>페이지</button>
+              <button type="button" role="tab" data-v="calendar"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>달력</button>
+              <button type="button" role="tab" data-v="todo"><svg viewBox="0 0 16 16"><rect x="2" y="2.5" width="4" height="4" rx="1"/><path d="M2.8 11.2l1 1 1.8-2M8 4.5h6M8 11h6"/></svg>TODO</button>
+            </div>
+            <span class="eh-label" id="ehLabel">페이지</span>
+          </div>
           <span class="eh-saved" id="lastSaved" hidden></span>
           <button class="btn primary sm" type="button" id="newPage">+ 새 페이지</button>
+        </div>
+        <!-- 탭 달력 -->
+        <div class="tcal" id="tcalW" hidden>
+          <div class="tcal-top">
+            <button class="cal-nav" type="button" id="tcPrev" aria-label="이전 달">‹</button>
+            <span class="tcal-title" id="tcTitle"></span>
+            <button class="cal-nav" type="button" id="tcNext" aria-label="다음 달">›</button>
+            <button class="cal-today" type="button" id="tcToday">오늘</button>
+            <span class="sp"></span>
+            <button class="btn primary sm" type="button" id="tcAdd">+ 일정 추가</button>
+          </div>
+          <div class="tcal-grid" id="tcGrid"></div>
+        </div>
+        <!-- TODO -->
+        <div class="todo" id="todoW" hidden>
+          <div class="todo-sum"><span id="tdSum"></span><span class="todo-bar"><i id="tdBar"></i></span></div>
+          <div class="todo-add">
+            <input class="field" id="tdText" maxlength="200" placeholder="할 일을 적고 Enter" autocomplete="off" aria-label="할 일">
+            <input class="field" type="date" id="tdDue" aria-label="마감일 (선택)" title="마감일 (선택)">
+            <button class="btn primary sm" type="button" id="tdAddBtn">추가</button>
+          </div>
+          <div class="todo-filter" role="tablist" aria-label="보기">
+            <button type="button" data-f="all">전체</button><button type="button" data-f="open">할 일</button><button type="button" data-f="done">완료</button>
+            <span class="sp"></span><button type="button" class="td-clear" id="tdClear">완료 항목 지우기</button>
+          </div>
+          <ul class="todo-list" id="tdList"></ul>
+          <p class="pg-empty" id="tdEmpty">아직 할 일이 없어요. 위에 적고 Enter를 누르면 추가돼요.</p>
         </div>
         <!-- 페이지 목록 -->
         <div class="pg-listw" id="pgListW">
@@ -1228,7 +1321,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (!has) return;
     $('#tabName').value = t.name;
     if (ui.mode === 'edit' && ui.dirty) commitPage(true); // 저장하지 않고 이동하면 자동 저장
-    showPageList();
+    showView();
   }
   function grow(){}
 
@@ -1268,9 +1361,151 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     $('#ehLabel').textContent = m === 'edit' ? (ui.isNew ? '새 페이지 작성' : '페이지 수정') : `${(cur && cur.name) || '프로젝트'} 목록`;
     showLastSaved();
   }
+  // ---------- 탭 기능 전환: 페이지 / 달력 / TODO ----------
+  const VIEW_LABEL = { pages:'페이지', calendar:'달력', todo:'TODO' };
+  function showView(){
+    const x = target(); if (!x) return;
+    const v = x.view || 'pages';
+    document.querySelectorAll('#viewSw button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === v)));
+    $('#tcalW').hidden = v !== 'calendar'; $('#todoW').hidden = v !== 'todo';
+    if (v === 'pages'){ showPageList(); return; }
+    ui.mode = v; ui.node = x; ui.page = null;
+    $('#newPage').hidden = true; $('#pgListW').hidden = true; $('#pgRead').hidden = true; $('#pgEditW').hidden = true;
+    $('#ehLabel').textContent = `${x.name || '탭'} ${VIEW_LABEL[v]}`;
+    if (v === 'calendar') renderTabCal(); else renderTodo();
+  }
+  $('#viewSw').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const x = target(); if (!x) return;
+    if (ui.mode === 'edit' && ui.dirty) commitPage(true);
+    x.view = b.dataset.v; touch(); save(); showView();
+  });
+
+  // 탭 달력 (탭마다 따로 일정 보관)
+  const tcState = { y: new Date().getFullYear(), m: new Date().getMonth() };
+  const tabEvents = x => Array.isArray(x.events) ? x.events : (x.events = []);
+  const tabOpt = x => ({ list: () => tabEvents(x), remove: ev => { x.events = tabEvents(x).filter(e => e !== ev); }, after: date => { if (date){ const d = keyToDate(date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); } renderTabCal(); } });
+  const sortEv = (a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0);
+  function renderTabCal(){
+    const x = target(); if (!x) return;
+    const { y, m } = tcState, grid = $('#tcGrid'); grid.replaceChildren();
+    $('#tcTitle').textContent = `${y}년 ${m + 1}월`;
+    DOW.forEach((d, i) => grid.append(Object.assign(document.createElement('div'), { className: 'dw' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''), textContent: d })));
+    const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
+    const weeks = Math.ceil((first.getDay() + new Date(y, m + 1, 0).getDate()) / 7), todayK = ymd(new Date());
+    const byDay = {}; tabEvents(x).forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
+    for (let i = 0; i < weeks * 7; i++){
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), key = ymd(d), w = d.getDay();
+      const hs = holidaysOn(key), off = hs.some(h => h.off);
+      const cell = document.createElement('div'); cell.setAttribute('role','button'); cell.tabIndex = 0;
+      cell.className = 'tc-cell' + (d.getMonth() !== m ? ' out' : '') + (w === 0 ? ' sun' : w === 6 ? ' sat' : '') + (off ? ' holi' : '') + (key === todayK ? ' today' : '');
+      const head = document.createElement('div'); head.className = 'tc-head';
+      head.append(Object.assign(document.createElement('span'), { className:'tc-num', textContent: d.getDate() }));
+      if (hs.length){ const hn = document.createElement('span'); hn.className = 'tc-hname' + (off ? '' : ' kinen'); hn.textContent = hs.map(h => h.name).join(', '); hn.title = hn.textContent; head.append(hn); }
+      cell.append(head);
+      const evs = (byDay[key] || []).sort(sortEv);
+      evs.slice(0, 3).forEach(ev => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'tc-ev'; b.title = ev.title + (ev.memo ? '\n' + ev.memo : '');
+        if (ev.time) b.append(Object.assign(document.createElement('span'), { className:'t', textContent: ev.time }));
+        b.append(document.createTextNode(ev.title));
+        b.addEventListener('click', e => { e.stopPropagation(); openEventDialog(ev, key, tabOpt(x)); });
+        cell.append(b);
+      });
+      if (evs.length > 3){ const mo = document.createElement('button'); mo.type = 'button'; mo.className = 'tc-more'; mo.textContent = `+${evs.length - 3}개 더`; mo.addEventListener('click', e => { e.stopPropagation(); openTabDay(x, key); }); cell.append(mo); }
+      const open = () => evs.length ? openTabDay(x, key) : openEventDialog(null, key, tabOpt(x));
+      cell.addEventListener('click', open);
+      cell.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === cell){ e.preventDefault(); open(); } });
+      cell.setAttribute('aria-label', `${d.getMonth() + 1}월 ${d.getDate()}일${hs.length ? ', ' + hs.map(h => h.name).join(', ') : ''}${evs.length ? `, 일정 ${evs.length}개` : ''}`);
+      grid.append(cell);
+    }
+  }
+  // 하루 일정 모아 보기 (탭 달력)
+  function openTabDay(x, key){
+    const last = document.activeElement, ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tdH"><h3 id="tdH"></h3><div class="holi-tags" id="tdHoli"></div><ul class="ev-all" id="tdDayList"></ul>
+      <div class="dfoot"><button class="btn" type="button" id="tdDayAdd">+ 일정 추가</button><span class="sp"></span><button class="btn primary" type="button" id="tdDayClose">닫기</button></div></div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    const opt = () => ({ ...tabOpt(x), after: d => { tabOpt(x).after(d); draw(); } });
+    const draw = () => {
+      const list = tabEvents(x).filter(e => e.date === key).sort(sortEv);
+      q('#tdH').textContent = `${dateLabel(key)} 일정 ${list.length}개`;
+      q('#tdHoli').replaceChildren(...holidaysOn(key).map(h => Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' kinen'), textContent: h.name })));
+      const ul = q('#tdDayList'); ul.replaceChildren();
+      list.forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key, opt()))); ul.append(li); });
+      if (!list.length) ul.innerHTML = '<li class="ev-empty">등록된 일정이 없어요.</li>';
+    };
+    draw();
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape' && ov === [...document.querySelectorAll('.overlay')].pop()){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#tdDayClose').addEventListener('click', close);
+    q('#tdDayAdd').addEventListener('click', () => openEventDialog(null, key, opt()));
+  }
+  $('#tcPrev').addEventListener('click', () => { tcState.m--; if (tcState.m < 0){ tcState.m = 11; tcState.y--; } renderTabCal(); });
+  $('#tcNext').addEventListener('click', () => { tcState.m++; if (tcState.m > 11){ tcState.m = 0; tcState.y++; } renderTabCal(); });
+  $('#tcToday').addEventListener('click', () => { const n = new Date(); tcState.y = n.getFullYear(); tcState.m = n.getMonth(); renderTabCal(); });
+  $('#tcAdd').addEventListener('click', () => { const x = target(); if (x) openEventDialog(null, ymd(new Date()), tabOpt(x)); });
+
+  // TODO (탭마다 따로)
+  let tdFilter = 'all';
+  const todosOf = x => Array.isArray(x.todos) ? x.todos : (x.todos = []);
+  function dueInfo(due){
+    if (!due) return null;
+    const t = new Date(); t.setHours(0,0,0,0); const d = keyToDate(due), n = Math.round((d - t) / 86400000);
+    const txt = n === 0 ? '오늘까지' : n === 1 ? '내일까지' : n < 0 ? `${-n}일 지남` : `${d.getMonth() + 1}/${d.getDate()} (D-${n})`;
+    return { txt, cls: n < 0 ? 'over' : n <= 2 ? 'soon' : '' };
+  }
+  function renderTodo(){
+    const x = target(); if (!x) return;
+    const all = todosOf(x), done = all.filter(t => t.done).length;
+    $('#tdSum').textContent = all.length ? `${done}/${all.length} 완료` : '할 일 0개';
+    $('#tdBar').style.width = all.length ? `${done / all.length * 100}%` : '0';
+    document.querySelectorAll('.todo-filter [data-f]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.f === tdFilter)));
+    $('#tdClear').hidden = done === 0;
+    const shown = [...all.filter(t => !t.done), ...all.filter(t => t.done)].filter(t => tdFilter === 'all' || (tdFilter === 'done' ? t.done : !t.done));
+    const ul = $('#tdList'); ul.replaceChildren();
+    shown.forEach(t => {
+      const li = document.createElement('li'); li.className = 'td-item' + (t.done ? ' done' : '');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!t.done; cb.setAttribute('aria-label', `${t.text} 완료`);
+      cb.addEventListener('change', () => { t.done = cb.checked; t.doneAt = cb.checked ? Date.now() : null; touch(); save(); renderTodo(); });
+      const tx = document.createElement('span'); tx.className = 'td-text'; tx.textContent = t.text; tx.spellcheck = false; tx.title = '눌러서 고치기';
+      tx.contentEditable = 'plaintext-only'; if (tx.contentEditable !== 'plaintext-only') tx.contentEditable = 'true';
+      tx.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); tx.blur(); } if (e.key === 'Escape'){ tx.textContent = t.text; tx.blur(); } });
+      tx.addEventListener('blur', () => { const v = tx.textContent.trim(); if (!v){ tx.textContent = t.text; return; } if (v !== t.text){ t.text = v.slice(0, 200); touch(); save(); } });
+      const di = dueInfo(t.due);
+      const due = document.createElement('button'); due.type = 'button'; due.className = 'td-due' + (di ? (di.cls ? ' ' + di.cls : '') : ' td-due-empty'); due.textContent = di ? di.txt : '+ 마감일';
+      due.title = '마감일 바꾸기';
+      due.addEventListener('click', () => {
+        const inp = document.createElement('input'); inp.type = 'date'; inp.className = 'field'; inp.style.cssText = 'width:150px;padding:3px 8px;font-size:12.5px;flex:none'; inp.value = t.due || '';
+        due.replaceWith(inp); inp.focus(); try { inp.showPicker && inp.showPicker(); } catch(_) {}
+        let fin = false; const done2 = () => { if (fin) return; fin = true; t.due = inp.value || ''; touch(); save(); renderTodo(); };
+        inp.addEventListener('change', done2); inp.addEventListener('blur', done2);
+      });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'td-x'; del.textContent = '✕'; del.setAttribute('aria-label', `${t.text} 삭제`);
+      del.addEventListener('click', () => { x.todos = todosOf(x).filter(y => y !== t); touch(); save(); renderTodo(); });
+      li.append(cb, tx, due, del); ul.append(li);
+    });
+    $('#tdEmpty').hidden = shown.length > 0;
+    $('#tdEmpty').textContent = all.length === 0 ? '아직 할 일이 없어요. 위에 적고 Enter를 누르면 추가돼요.' : tdFilter === 'done' ? '완료한 일이 없어요.' : '남은 할 일이 없어요. 수고했어요!';
+  }
+  function addTodo(){
+    const x = target(); if (!x) return;
+    const v = $('#tdText').value.trim(); if (!v){ $('#tdText').focus(); return; }
+    todosOf(x).push({ id: uid('td_'), text: v.slice(0, 200), done: false, due: $('#tdDue').value || '', createdAt: Date.now() });
+    $('#tdText').value = ''; $('#tdDue').value = ''; touch(); save(); if (tdFilter === 'done') tdFilter = 'all'; renderTodo(); $('#tdText').focus();
+  }
+  $('#tdAddBtn').addEventListener('click', addTodo);
+  $('#tdText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addTodo(); } });
+  document.querySelector('.todo-filter').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; tdFilter = b.dataset.f; renderTodo(); });
+  $('#tdClear').addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 지워요', () => { const x = target(); x.todos = todosOf(x).filter(t => !t.done); touch(); save(); renderTodo(); }));
+
   const PER_PAGE = 10, PAGE_WINDOW = 5;
   function showPageList(no){
     const x = target();
+    $('#tcalW').hidden = true; $('#todoW').hidden = true;
+    document.querySelectorAll('#viewSw button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === 'pages')));
     if (ui.node !== x) ui.pageNo = 1;          // 다른 탭으로 오면 1쪽부터
     if (no) ui.pageNo = no;
     ui.node = x; ui.page = null; ui.dirty = false; ui.isNew = false;
@@ -1877,6 +2112,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     const walk = (node, path, ids) => {
       out.push({ kind:'tab', path, ids, name: node.name || '', body: '' });
       (node.pages || []).forEach(pg => out.push({ kind:'page', page: pg, path: [...path, pg.title || '제목 없음'], ids, name: pg.title || '', body: pg.body || '' }));
+      (node.todos || []).forEach(td => out.push({ kind:'todo', path: [...path, 'TODO'], ids, name: td.text, body: '' }));
+      (node.events || []).forEach(ev => out.push({ kind:'tabev', ev, path: [...path, '달력', ev.date.slice(5).replace('-', '/')], ids, name: ev.title, body: ev.memo || '' }));
       if (ids.length < 3) subsOf(node).forEach(x => walk(x, [...path, x.name || '제목 없음'], [...ids, x.id]));
     };
     (cur.tabs || []).forEach(t => walk(t, [t.name || '제목 없음'], [t.id]));
@@ -1919,7 +2156,9 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     if (s1){ t.activeSub = s1; const x = subsOf(t).find(y => y.id === s1); if (x && s2) x.activeSub = s2; }
     else if (subsOf(t).length) { /* 상위 탭 이름만 일치: 탭만 열기 */ }
     save(); renderTabs(); loadTab();
-    if (h.kind === 'page'){ openPage(h.page); selectText($('#pgContent'), h.sn.hit); return; }
+    if (h.kind === 'page'){ if ((target().view || 'pages') !== 'pages'){ target().view = 'pages'; save(); showView(); } openPage(h.page); selectText($('#pgContent'), h.sn.hit); return; }
+    if (h.kind === 'todo'){ target().view = 'todo'; tdFilter = 'all'; save(); showView(); return; }
+    if (h.kind === 'tabev'){ target().view = 'calendar'; const d = keyToDate(h.ev.date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); save(); showView(); return; }
     $('#tabs [aria-selected="true"]')?.scrollIntoView({ block:'nearest' });
   }
   function selectText(root, word){
@@ -2070,7 +2309,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   $('#evMore').addEventListener('click', () => openAllEvents(calState.sel));
 
   // 일정 등록·수정 팝업
-  function openEventDialog(ev, key){
+  function openEventDialog(ev, key, opt){
+    const evList = opt ? opt.list : eventsOf;
     const isNew = !ev, last = document.activeElement;
     const ov = document.createElement('div'); ov.className = 'overlay';
     ov.innerHTML = `
@@ -2119,7 +2359,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       if (!allDay && !time){ q('#evTimeIn').focus(); q('#evTimeIn').style.borderColor = 'var(--danger)'; return; }
       if (endTime && endTime <= time){ q('#evEndIn').focus(); q('#evEndIn').style.borderColor = 'var(--danger)'; q('#evHint').textContent = '종료 시간은 시작 시간보다 늦어야 해요.'; return; }
       const data = { date, time, endTime, title, memo: q('#evMemoIn').value.trim() };
-      if (isNew) eventsOf().push({ id: uid('ev_'), createdAt: Date.now(), ...data }); else Object.assign(ev, data);
+      if (isNew) evList().push({ id: uid('ev_'), createdAt: Date.now(), ...data }); else Object.assign(ev, data);
+      if (opt){ touch(); save(); close(); opt.after(date); return; }
       calState.sel = date; const d = keyToDate(date); calState.y = d.getFullYear(); calState.m = d.getMonth();
       touch(); save(); close(); renderCal();
       if ($('.overlay .ev-all')) refreshAll();
@@ -2130,6 +2371,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     q('#evSave').addEventListener('click', submit);
     const del = q('#evDel');
     if (del) del.addEventListener('click', e => armed(e.currentTarget, '한 번 더 누르면 삭제', () => {
+      if (opt){ opt.remove(ev); touch(); save(); close(); opt.after(); return; }
       cur.events = eventsOf().filter(x => x !== ev); touch(); save(); close(); renderCal(); if ($('.overlay .ev-all')) refreshAll();
     }));
     setTimeout(() => q('#evNameIn').focus(), 0);
