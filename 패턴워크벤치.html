@@ -780,13 +780,6 @@
         <div class="sample-list" id="thCustomList" style="margin-top:10px;"></div>
         <div class="status-line" id="thCustomNote" style="margin-top:8px;"></div>
       </div>
-
-      <div class="checkgrid">
-        <label class="checkline"><input type="checkbox" id="thRandomize" checked> 건마다 다른 값으로 생성 (중복 제거 회피)</label>
-        <label class="checkline"><input type="checkbox" id="thKeepCustom" checked> 직접 입력 값은 랜덤화하지 않고 그대로 사용</label>
-        <label class="checkline"><input type="checkbox" id="thLabel" checked> 항목명 라벨 포함</label>
-        <label class="checkline"><input type="checkbox" id="thHeader" checked> 파일 머리말에 건수 표기</label>
-      </div>
     </div>
   </section>
 
@@ -23252,12 +23245,8 @@ var src_default = GIFEncoder;
   const thCustomValue    = document.getElementById('thCustomValue');
   const thCustomListEl   = document.getElementById('thCustomList');
   const thCustomNoteEl   = document.getElementById('thCustomNote');
-  const thKeepCustom     = document.getElementById('thKeepCustom');
   const thCountChipsEl   = document.getElementById('thCountChips');
   const thCustomCount    = document.getElementById('thCustomCount');
-  const thRandomize      = document.getElementById('thRandomize');
-  const thLabelChk       = document.getElementById('thLabel');
-  const thHeaderChk      = document.getElementById('thHeader');
   const thBackground     = document.getElementById('thBackground');
   const thUseBackground  = document.getElementById('thUseBackground');
   const thPlanEl         = document.getElementById('thPlan');
@@ -23286,29 +23275,6 @@ var src_default = GIFEncoder;
 
   function thNum(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
-  // 예시값의 형태(자릿수·기호·영문 위치)는 그대로 두고 값만 바꿔, 건마다
-  // 서로 다른 값이 들어가게 한다. DLP가 동일 값을 1건으로 합쳐 세는 경우를
-  // 피하기 위한 옵션이다. 검증코드(체크섬)까지 맞추지는 않는다.
-  function thRandomizeValue(example){
-    return tokenize(example).map(t => {
-      if (t.type === 'digit'){
-        let out = '';
-        for (let i = 0; i < t.text.length; i++) out += String(Math.floor(Math.random() * 10));
-        return out;
-      }
-      if (t.type === 'alpha'){
-        let out = '';
-        for (let i = 0; i < t.text.length; i++){
-          const c = t.text[i];
-          const base = (c === c.toLowerCase()) ? 97 : 65;
-          out += String.fromCharCode(base + Math.floor(Math.random() * 26));
-        }
-        return out;
-      }
-      return t.text;
-    }).join('');
-  }
-
   function thActiveItems(){
     const picked = PRESETS.filter(p => thSelectedItems.includes(p.id))
       .map(p => ({ id:p.id, label:p.label, example:p.example, custom:false }));
@@ -23316,13 +23282,6 @@ var src_default = GIFEncoder;
       .map(c => ({ id:c.id, label:c.label, example:c.example, custom:true }));
     const all = picked.concat(custom);
     return all.length ? all : [{ id:PRESETS[0].id, label:PRESETS[0].label, example:PRESETS[0].example, custom:false }];
-  }
-
-  function thValueFor(item){
-    // 직접 입력한 값은 기본적으로 손대지 않는다. 형식만 맞춘 난수로 바꾸면
-    // 검증코드가 깨져 "실제 탐지되는 값"이라는 전제가 무너지기 때문이다.
-    if (item.custom && thKeepCustom.checked) return item.example;
-    return thRandomize.checked ? thRandomizeValue(item.example) : item.example;
   }
 
   function thRenderCustomList(){
@@ -23395,24 +23354,16 @@ var src_default = GIFEncoder;
     showToast(values.length + '개 값을 추가했습니다.', 'ok');
   }
 
+  // 선택한 값을 순서대로 돌려가며 count건을 채운다. 값은 입력한 그대로
+  // 들어간다 — 라벨·번호 같은 군더더기가 붙으면 탐지 결과가 오염될 수 있다.
   function thBuildText(count){
     const items = thActiveItems();
     const useBg = thUseBackground.checked;
     const bg = thBackground.value.trim();
     const lines = [];
-    if (thHeaderChk.checked){
-      lines.push('[임계치 테스트] 민감정보 ' + thNum(count) + '건');
-      lines.push('');
-    }
     if (useBg && bg) lines.push(bg);
     for (let i = 0; i < count; i++){
-      const item = items[i % items.length];
-      const value = thValueFor(item);
-      const no = String(i + 1).padStart(String(count).length, '0');
-      // 직접 입력 값은 항목명이 없으므로 번호만 붙인다. 뜻 없는 "직접 입력:"
-      // 접두사가 테스트 문서에 섞여 들어가지 않게 하기 위함이다.
-      const prefix = item.custom ? (no + '. ') : (no + '. ' + item.label + ': ');
-      lines.push(thLabelChk.checked ? (prefix + value) : value);
+      lines.push(items[i % items.length].example);
       if (useBg && bg && (i + 1) % 5 === 0 && i + 1 < count) lines.push(bg);
     }
     return lines.join('\n');
@@ -23466,15 +23417,15 @@ var src_default = GIFEncoder;
   function thRenderAll(){
     const counts = thSortedCounts();
 
-    // 직접 입력 값을 그대로 쓰는 경우, 건수가 값 개수보다 많으면 같은 값이
+    // 값은 입력한 그대로 들어가므로, 건수가 값 개수보다 많으면 같은 값이
     // 반복된다. 중복을 1건으로 합산하는 엔진에서는 실제 검출 건수가 달라지므로
     // 그 점을 눈에 보이게 알려준다.
-    const activeCustom = thCustomItems.filter(c => c.on).length;
+    const valueCount = thActiveItems().length;
     const maxCount = counts.length ? counts[counts.length - 1] : 0;
-    if (activeCustom && thKeepCustom.checked && maxCount > activeCustom){
+    if (maxCount > valueCount){
       thCustomNoteEl.textContent =
-        '직접 입력 값 ' + activeCustom + '개가 반복 사용됩니다. 동일 값을 1건으로 합산하는 엔진에서는 검출 건수가 ' +
-        activeCustom + '건으로 잡힐 수 있으니, 건수만큼 값을 더 넣거나 "직접 입력 값은 그대로 사용"을 해제하세요.';
+        '서로 다른 값이 ' + valueCount + '개뿐이라 반복 사용됩니다. 동일 값을 1건으로 합산하는 엔진에서는 검출 건수가 ' +
+        valueCount + '건으로 잡힐 수 있으니, 건수만큼 값을 더 넣어주세요.';
       thCustomNoteEl.className = 'status-line warn';
     } else {
       thCustomNoteEl.textContent = '';
@@ -23520,9 +23471,7 @@ var src_default = GIFEncoder;
     thPreviewIndex++; thRenderAll();
   });
 
-  [thRandomize, thKeepCustom, thLabelChk, thHeaderChk, thUseBackground].forEach(el => {
-    el.addEventListener('change', thRenderAll);
-  });
+  thUseBackground.addEventListener('change', thRenderAll);
 
   document.getElementById('thCustomAddBtn').addEventListener('click', thAddCustomItems);
   // 값 칸은 여러 줄 입력을 받아야 하므로 Enter는 줄바꿈으로 두고,
