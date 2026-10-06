@@ -188,9 +188,11 @@ button{cursor:pointer}
 .ev-item .tm{font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;flex:none;min-width:40px}
 .ev-item .tm.all{color:var(--accent-strong);font-weight:600}
 .ev-item .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ev-src{flex:none;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:var(--surface);color:var(--text-faint);border:1px solid var(--border);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-empty{margin:2px 0 0;font-size:12.5px;color:var(--text-faint)}
 .ev-more{margin-top:6px;width:100%;border:0;background:transparent;color:var(--text-dim);font-size:12.5px;padding:5px;border-radius:7px}
 .ev-more:hover{background:var(--surface-2);color:var(--text)}
+.share-row{padding-top:12px;border-top:1px dashed var(--border)}
 .allday{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;cursor:pointer;user-select:none;align-self:flex-start}
 .allday input{position:absolute;opacity:0;width:1px;height:1px}
 .allday .sw-track{width:38px;height:22px;border-radius:999px;background:var(--border);position:relative;transition:background .15s;flex:none}
@@ -608,7 +610,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       <div class="search-wrap">
         <div class="search">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
-          <input id="q" type="text" enterkeyhint="search" placeholder="이 프로젝트에서 검색 (탭 · 페이지 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
+          <input id="q" type="text" enterkeyhint="search" placeholder="이 프로젝트에서 검색 (페이지 · TODO · 일정 · 카드)" autocomplete="off" aria-label="프로젝트 내 검색" aria-controls="results">
           <span class="qcount" id="qcount"></span>
           <button class="qclear" id="qclear" type="button" aria-label="검색어 지우기" hidden>✕</button>
         </div>
@@ -1384,7 +1386,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   // 탭 달력 (탭마다 따로 일정 보관)
   const tcState = { y: new Date().getFullYear(), m: new Date().getMonth() };
   const tabEvents = x => Array.isArray(x.events) ? x.events : (x.events = []);
-  const tabOpt = x => ({ list: () => tabEvents(x), remove: ev => { x.events = tabEvents(x).filter(e => e !== ev); }, after: date => { if (date){ const d = keyToDate(date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); } renderTabCal(); } });
+  const tabOpt = x => ({ list: () => tabEvents(x), remove: ev => { x.events = tabEvents(x).filter(e => e !== ev); }, after: date => { if (date){ const d = keyToDate(date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); } renderTabCal(); renderCal(); } });
   const sortEv = (a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0);
   function renderTabCal(){
     const x = target(); if (!x) return;
@@ -2248,11 +2250,24 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   }
   const holidaysOn = key => (holidaysOf(+key.slice(0, 4))[key] || []);
   const eventsOf = () => cur ? (Array.isArray(cur.events) ? cur.events : (cur.events = [])) : [];
-  const eventsOn = key => eventsOf().filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0));
+  // 탭 달력에서 '개인 달력에도 표시'를 켠 일정 (복사하지 않고 원본을 그대로 보여 줌 → 수정·삭제가 함께 반영)
+  const sharedOwner = new Map();
+  function sharedEvents(){
+    sharedOwner.clear(); const out = [];
+    const walk = n => { (n.events || []).forEach(e => { if (e.shared){ out.push(e); sharedOwner.set(e, n); } }); (n.subs || []).forEach(walk); };
+    (cur && cur.tabs || []).forEach(walk); return out;
+  }
+  const sideEvents = () => [...eventsOf(), ...sharedEvents()];
+  function openSideEvent(ev, key){
+    const n = sharedOwner.get(ev);
+    if (n) openEventDialog(ev, key, { list: () => tabEvents(n), remove: e => { n.events = tabEvents(n).filter(x => x !== e); }, after: () => { renderCal(); if (!$('#tcalW').hidden) renderTabCal(); if ($('.overlay .ev-all')) refreshAll(); } });
+    else openEventDialog(ev, key);
+  }
+  const eventsOn = key => sideEvents().filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0));
   function renderCal(){
     if (!calState.sel) calState.sel = ymd(new Date());
     const { y, m } = calState, grid = $('#calGrid'); grid.replaceChildren();
-    const evDays = new Set(eventsOf().map(e => e.date));
+    const evDays = new Set(sideEvents().map(e => e.date));
     $('#calTitle').textContent = `${y}년 ${m + 1}월`;
     ['일','월','화','수','목','금','토'].forEach((d, i) => { const e = document.createElement('div'); e.className = 'dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''); e.textContent = d; grid.append(e); });
     const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
@@ -2286,12 +2301,15 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   const DOW = ['일','월','화','수','목','금','토'];
   const keyToDate = k => { const [a, b, c] = k.split('-').map(Number); return new Date(a, b - 1, c); };
   const dateLabel = k => { const d = keyToDate(k); return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW[d.getDay()]})${ymd(new Date()) === k ? ' · 오늘' : ''}`; };
-  function evItem(ev, onClick){
+  function evItem(ev, onClick, showSrc){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'ev-item';
     const bar = document.createElement('span'); bar.className = 'bar';
     const tm = document.createElement('span'); const all = !ev.time; tm.className = 'tm' + (all ? ' all' : ''); tm.textContent = all ? '하루 종일' : (ev.endTime ? `${ev.time}~${ev.endTime}` : ev.time);
     const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = ev.title; b.title = ev.title + (ev.memo ? '\n' + ev.memo : '');
-    b.append(bar, tm, tt); b.addEventListener('click', onClick);
+    b.append(bar, tm, tt);
+    const owner = showSrc && sharedOwner.get(ev);
+    if (owner){ const tg = document.createElement('span'); tg.className = 'ev-src'; tg.textContent = owner.name || '탭'; tg.title = `‘${owner.name || '탭'}’ 탭 달력에서 공유한 일정`; b.append(tg); }
+    b.addEventListener('click', onClick);
     return b;
   }
   const MAX_EV_SHOWN = 3;
@@ -2300,7 +2318,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     $('#evDate').textContent = dateLabel(key);
     const tags = $('#holiTags'); tags.replaceChildren();
     holidaysOn(key).forEach(h => tags.append(Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' kinen'), textContent: h.name })));
-    list.slice(0, MAX_EV_SHOWN).forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key))); ul.append(li); });
+    list.slice(0, MAX_EV_SHOWN).forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openSideEvent(ev, key), true)); ul.append(li); });
     $('#evEmpty').hidden = list.length > 0; ul.hidden = list.length === 0;
     const more = $('#evMore'); more.hidden = list.length <= MAX_EV_SHOWN;
     more.textContent = `더보기 (+${list.length - MAX_EV_SHOWN}) · 전체 ${list.length}개`;
@@ -2330,6 +2348,8 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           <input class="field" id="evNameIn" maxlength="50" autocomplete="off" placeholder="예) 고객사 미팅, 견적서 마감"></div>
         <div class="fgroup"><label class="flabel" for="evMemoIn"><span>메모 (선택)</span></label>
           <textarea class="field" id="evMemoIn" maxlength="500" style="min-height:80px" placeholder="장소, 준비물 등"></textarea></div>
+        ${opt ? `<div class="fgroup share-row"><label class="allday"><input type="checkbox" id="evShare"><span class="sw-track" aria-hidden="true"></span><span>개인 달력에도 표시</span></label>
+          <span class="ev-hint">켜면 오른쪽 달력에도 이 일정이 보여요. 여기서 고치거나 지우면 오른쪽 달력에도 똑같이 반영돼요.</span></div>` : ''}
         <div class="dfoot">
           ${isNew ? '' : '<button class="btn ghost danger" type="button" id="evDel">삭제</button>'}
           <span class="sp"></span>
@@ -2346,6 +2366,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     ['#evTimeIn','#evEndIn'].forEach(id => q(id).addEventListener('input', () => { q('#evTimeIn').style.borderColor = ''; q('#evEndIn').style.borderColor = ''; if (!q('#evAllDay').checked) q('#evHint').textContent = '종료 시간은 비워 둬도 돼요.'; }));
     q('#evAllDay').addEventListener('change', () => { syncAll(); if (!q('#evAllDay').checked) q('#evTimeIn').focus(); }); syncAll();
     q('#evNameIn').value = ev ? ev.title : ''; q('#evMemoIn').value = ev ? (ev.memo || '') : '';
+    if (q('#evShare')) q('#evShare').checked = !!(ev && ev.shared);
     const cnt = () => { q('#evCnt').textContent = `${q('#evNameIn').value.length}/50`; }; cnt();
     q('#evNameIn').addEventListener('input', cnt);
     function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
@@ -2359,6 +2380,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       if (!allDay && !time){ q('#evTimeIn').focus(); q('#evTimeIn').style.borderColor = 'var(--danger)'; return; }
       if (endTime && endTime <= time){ q('#evEndIn').focus(); q('#evEndIn').style.borderColor = 'var(--danger)'; q('#evHint').textContent = '종료 시간은 시작 시간보다 늦어야 해요.'; return; }
       const data = { date, time, endTime, title, memo: q('#evMemoIn').value.trim() };
+      if (q('#evShare')) data.shared = q('#evShare').checked;
       if (isNew) evList().push({ id: uid('ev_'), createdAt: Date.now(), ...data }); else Object.assign(ev, data);
       if (opt){ touch(); save(); close(); opt.after(date); return; }
       calState.sel = date; const d = keyToDate(date); calState.y = d.getFullYear(); calState.m = d.getMonth();
@@ -2394,7 +2416,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       const list = eventsOn(key);
       q('#evAllH').textContent = `${dateLabel(key)} 일정 ${list.length}개`;
       const ul = q('#evAllList'); ul.replaceChildren();
-      list.forEach(ev => { const li = document.createElement('li'); const b = evItem(ev, () => openEventDialog(ev, key));
+      list.forEach(ev => { const li = document.createElement('li'); const b = evItem(ev, () => openSideEvent(ev, key), true);
         if (ev.memo){ const m = document.createElement('span'); m.style.cssText = 'display:block;font-size:12px;color:var(--text-faint);margin-top:2px;white-space:normal'; m.textContent = ev.memo; b.querySelector('.tt').after(m); b.style.flexWrap = 'wrap'; m.style.flexBasis = '100%'; m.style.paddingLeft = '45px'; }
         li.append(b); ul.append(li); });
       if (!list.length) ul.innerHTML = '<li class="ev-empty">등록된 일정이 없어요.</li>';
