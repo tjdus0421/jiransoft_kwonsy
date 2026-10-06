@@ -397,7 +397,31 @@ button{cursor:pointer}
 .tc-hname{font-size:10px;color:#C0392B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .tc-hname.kinen{color:#A0782A}
 .tc-ev{font-size:11px;line-height:1.35;padding:1px 5px;border-radius:4px;background:var(--accent-tint);color:var(--accent-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;text-align:left;width:100%}
-.tc-ev:hover{background:var(--accent);color:#fff}
+.tc-ev:hover{filter:brightness(.96);box-shadow:inset 0 0 0 1px currentColor}
+.tc-ev[data-c]{background:var(--cbg);color:var(--cfg);border-left:3px solid var(--cfg);padding-left:4px}
+.cat-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px}
+.cat-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:3px 10px 3px 8px;font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.cat-chip i{width:9px;height:9px;border-radius:50%;background:var(--cfg);flex:none}
+.cat-chip b{font-weight:700;color:var(--text)}
+.cat-chip.off{opacity:.4}
+.cat-chip:hover{border-color:var(--text-faint)}
+.cat-edit{border:1px dashed var(--border);background:transparent;border-radius:999px;padding:3px 10px;font-size:12px;color:var(--text-faint)}
+.cat-edit:hover{border-color:var(--accent);color:var(--accent-strong)}
+.cat-pick{display:flex;flex-wrap:wrap;gap:6px}
+.cat-pick button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 11px 4px 9px;font-size:12.5px;color:var(--text-dim)}
+.cat-pick button i{width:9px;height:9px;border-radius:50%;background:var(--cfg)}
+.cat-pick button[aria-checked="true"]{background:var(--cbg);color:var(--cfg);border-color:var(--cfg);font-weight:700}
+.cat-pick button.none[aria-checked="true"]{background:var(--surface-2);color:var(--text);border-color:var(--text-faint)}
+.cat-pick .cat-manage{border-style:dashed;color:var(--text-faint)}
+.cat-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cat-row{display:flex;align-items:center;gap:8px}
+.cat-row .field{flex:1;padding:7px 10px}
+.cat-row .sws{display:flex;gap:3px;flex-wrap:wrap;max-width:190px}
+.cat-row .sw{width:20px;height:20px}
+.cat-row .sw[aria-checked="true"]{border-color:var(--cfg);border-width:2px}
+.cat-row .x{border:0;background:transparent;color:var(--text-faint);width:26px;height:26px;border-radius:6px;flex:none}
+.cat-row .x:hover{background:var(--danger-tint);color:var(--danger)}
+.ev-item .ctag{flex:none;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--cbg);color:var(--cfg)}
 .tc-ev .t{font-variant-numeric:tabular-nums;opacity:.8;margin-right:3px}
 .tc-more{font-size:10.5px;color:var(--text-faint);border:0;background:transparent;text-align:left;padding:0 5px}
 .tc-more:hover{color:var(--accent-strong)}
@@ -669,6 +693,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
             <span class="sp"></span>
             <button class="btn primary sm" type="button" id="tcAdd">+ 일정 추가</button>
           </div>
+          <div class="cat-bar" id="catBar"></div>
           <div class="tcal-grid" id="tcGrid"></div>
         </div>
         <!-- TODO -->
@@ -1386,16 +1411,82 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   // 탭 달력 (탭마다 따로 일정 보관)
   const tcState = { y: new Date().getFullYear(), m: new Date().getMonth() };
   const tabEvents = x => Array.isArray(x.events) ? x.events : (x.events = []);
-  const tabOpt = x => ({ list: () => tabEvents(x), remove: ev => { x.events = tabEvents(x).filter(e => e !== ev); }, after: date => { if (date){ const d = keyToDate(date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); } renderTabCal(); renderCal(); } });
+  const tabOpt = x => ({ node: x, list: () => tabEvents(x), remove: ev => { x.events = tabEvents(x).filter(e => e !== ev); }, after: date => { if (date){ const d = keyToDate(date); tcState.y = d.getFullYear(); tcState.m = d.getMonth(); } renderTabCal(); renderCal(); } });
+  // 항목 (오늘 무엇을 했는지 분류) — 탭 달력마다 따로, 추가·수정·삭제 가능
+  const CAT_COLORS = ['blue','green','orange','purple','pink','yellow','red','gray'];
+  const DEFAULT_CATS = [['회의','blue'],['업무','green'],['외근','orange'],['학습','purple'],['기타','gray']];
+  function catsOf(x){
+    if (!Array.isArray(x.cats)) x.cats = DEFAULT_CATS.map(([name, color]) => ({ id: uid('ct_'), name, color }));
+    return x.cats;
+  }
+  const catOf = (x, ev) => ev && ev.cat ? catsOf(x).find(c => c.id === ev.cat) : null;
+  let catHidden = new Set(); // 범례에서 잠시 숨긴 항목
+  function renderCatBar(x){
+    const bar = $('#catBar'); bar.replaceChildren();
+    const { y, m } = tcState, pre = `${y}-${String(m + 1).padStart(2,'0')}`;
+    const monthEv = tabEvents(x).filter(e => e.date.startsWith(pre));
+    catsOf(x).forEach(c => {
+      const n = monthEv.filter(e => e.cat === c.id).length;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'cat-chip' + (catHidden.has(c.id) ? ' off' : ''); b.dataset.c = c.color;
+      b.title = catHidden.has(c.id) ? '눌러서 다시 보기' : '눌러서 잠시 숨기기';
+      b.append(document.createElement('i'), document.createTextNode(c.name + ' '), Object.assign(document.createElement('b'), { textContent: n }));
+      b.addEventListener('click', () => { catHidden.has(c.id) ? catHidden.delete(c.id) : catHidden.add(c.id); renderTabCal(); });
+      bar.append(b);
+    });
+    const ed = document.createElement('button'); ed.type = 'button'; ed.className = 'cat-edit'; ed.textContent = '항목 관리';
+    ed.addEventListener('click', () => openCatManager(x, () => renderTabCal())); bar.append(ed);
+  }
+  // 항목 관리 팝업: 이름·색 바꾸기, 추가, 삭제
+  function openCatManager(x, onDone){
+    const last = document.activeElement, ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cmH" style="max-width:460px">
+      <h3 id="cmH">항목 관리</h3>
+      <p style="margin:-8px 0 0;font-size:13px;color:var(--text-faint)">일정에 붙일 항목이에요. 이름과 색을 바꾸거나 새로 추가할 수 있어요.</p>
+      <ul class="cat-rows" id="cmRows"></ul>
+      <button class="btn sm" type="button" id="cmAdd" style="align-self:flex-start">+ 항목 추가</button>
+      <div class="dfoot"><span class="sp"></span><button class="btn primary" type="button" id="cmDone">완료</button></div></div>`;
+    document.body.append(ov);
+    const q = s => ov.querySelector(s);
+    const draw = (focusLast) => {
+      const ul = q('#cmRows'); ul.replaceChildren();
+      catsOf(x).forEach(c => {
+        const li = document.createElement('li'); li.className = 'cat-row';
+        const inp = document.createElement('input'); inp.className = 'field'; inp.maxLength = 12; inp.value = c.name; inp.placeholder = '항목 이름'; inp.setAttribute('aria-label', '항목 이름');
+        inp.addEventListener('input', () => { c.name = inp.value; touch(); saveSoon(); });
+        inp.addEventListener('blur', () => { if (!inp.value.trim()){ c.name = '이름 없음'; inp.value = c.name; } save(); });
+        const sws = document.createElement('div'); sws.className = 'sws'; sws.setAttribute('role','radiogroup'); sws.setAttribute('aria-label','색');
+        CAT_COLORS.forEach(col => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.dataset.c = col; b.setAttribute('role','radio'); b.setAttribute('aria-label', col); b.setAttribute('aria-checked', String(c.color === col));
+          b.addEventListener('click', () => { c.color = col; touch(); save(); sws.querySelectorAll('.sw').forEach(z => z.setAttribute('aria-checked', String(z === b))); }); sws.append(b); });
+        const del = document.createElement('button'); del.type = 'button'; del.className = 'x'; del.textContent = '✕'; del.setAttribute('aria-label', `${c.name} 항목 삭제`);
+        del.addEventListener('click', () => armed(del, '삭제?', () => {
+          x.cats = catsOf(x).filter(z => z !== c); tabEvents(x).forEach(e => { if (e.cat === c.id) delete e.cat; }); catHidden.delete(c.id); touch(); save(); draw();
+        }));
+        li.append(inp, sws, del); ul.append(li);
+      });
+      if (focusLast){ const ins = ul.querySelectorAll('input'); const l = ins[ins.length - 1]; if (l){ l.focus(); l.select(); } }
+    };
+    draw();
+    q('#cmAdd').addEventListener('click', () => {
+      if (catsOf(x).length >= 12) return;
+      const used = new Set(catsOf(x).map(c => c.color));
+      catsOf(x).push({ id: uid('ct_'), name: '새 항목', color: CAT_COLORS.find(c => !used.has(c)) || 'gray' }); touch(); save(); draw(true);
+    });
+    function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); save(); onDone && onDone(); if (last && last.isConnected) last.focus(); }
+    function onKey(e){ if (e.key === 'Escape' && ov === [...document.querySelectorAll('.overlay')].pop()){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    q('#cmDone').addEventListener('click', close);
+  }
   const sortEv = (a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0);
   function renderTabCal(){
     const x = target(); if (!x) return;
     const { y, m } = tcState, grid = $('#tcGrid'); grid.replaceChildren();
     $('#tcTitle').textContent = `${y}년 ${m + 1}월`;
+    renderCatBar(x);
     DOW.forEach((d, i) => grid.append(Object.assign(document.createElement('div'), { className: 'dw' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''), textContent: d })));
     const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
     const weeks = Math.ceil((first.getDay() + new Date(y, m + 1, 0).getDate()) / 7), todayK = ymd(new Date());
-    const byDay = {}; tabEvents(x).forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
+    const byDay = {}; tabEvents(x).filter(e => !(e.cat && catHidden.has(e.cat))).forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
     for (let i = 0; i < weeks * 7; i++){
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), key = ymd(d), w = d.getDay();
       const hs = holidaysOn(key), off = hs.some(h => h.off);
@@ -1407,7 +1498,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       cell.append(head);
       const evs = (byDay[key] || []).sort(sortEv);
       evs.slice(0, 3).forEach(ev => {
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'tc-ev'; b.title = ev.title + (ev.memo ? '\n' + ev.memo : '');
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'tc-ev'; const ct = catOf(x, ev); if (ct) b.dataset.c = ct.color; b.title = (ct ? `[${ct.name}] ` : '') + ev.title + (ev.memo ? '\n' + ev.memo : '');
         if (ev.time) b.append(Object.assign(document.createElement('span'), { className:'t', textContent: ev.time }));
         b.append(document.createTextNode(ev.title));
         b.addEventListener('click', e => { e.stopPropagation(); openEventDialog(ev, key, tabOpt(x)); });
@@ -1434,7 +1525,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       q('#tdH').textContent = `${dateLabel(key)} 일정 ${list.length}개`;
       q('#tdHoli').replaceChildren(...holidaysOn(key).map(h => Object.assign(document.createElement('span'), { className: 'holi-tag' + (h.off ? '' : ' kinen'), textContent: h.name })));
       const ul = q('#tdDayList'); ul.replaceChildren();
-      list.forEach(ev => { const li = document.createElement('li'); li.append(evItem(ev, () => openEventDialog(ev, key, opt()))); ul.append(li); });
+      list.forEach(ev => { const li = document.createElement('li'); const it = evItem(ev, () => openEventDialog(ev, key, opt())); const ct = catOf(x, ev); if (ct){ it.dataset.c = ct.color; it.querySelector('.bar').style.background = 'var(--cfg)'; const tg = document.createElement('span'); tg.className = 'ctag'; tg.textContent = ct.name; it.append(tg); } li.append(it); ul.append(li); });
       if (!list.length) ul.innerHTML = '<li class="ev-empty">등록된 일정이 없어요.</li>';
     };
     draw();
@@ -2260,7 +2351,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
   const sideEvents = () => [...eventsOf(), ...sharedEvents()];
   function openSideEvent(ev, key){
     const n = sharedOwner.get(ev);
-    if (n) openEventDialog(ev, key, { list: () => tabEvents(n), remove: e => { n.events = tabEvents(n).filter(x => x !== e); }, after: () => { renderCal(); if (!$('#tcalW').hidden) renderTabCal(); if ($('.overlay .ev-all')) refreshAll(); } });
+    if (n) openEventDialog(ev, key, { node: n, list: () => tabEvents(n), remove: e => { n.events = tabEvents(n).filter(x => x !== e); }, after: () => { renderCal(); if (!$('#tcalW').hidden) renderTabCal(); if ($('.overlay .ev-all')) refreshAll(); } });
     else openEventDialog(ev, key);
   }
   const eventsOn = key => sideEvents().filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || '') || (a.createdAt || 0) - (b.createdAt || 0));
@@ -2344,6 +2435,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
           </div>
           <span class="ev-hint" id="evHint">종료 시간은 비워 둬도 돼요.</span>
         </div>
+        ${opt && opt.node ? `<div class="fgroup"><div class="flabel"><span id="evCatL">항목</span></div><div class="cat-pick" role="radiogroup" aria-labelledby="evCatL" id="evCats"></div></div>` : ''}
         <div class="fgroup"><label class="flabel" for="evNameIn"><span>일정 제목</span><span class="cnt" id="evCnt"></span></label>
           <input class="field" id="evNameIn" maxlength="50" autocomplete="off" placeholder="예) 고객사 미팅, 견적서 마감"></div>
         <div class="fgroup"><label class="flabel" for="evMemoIn"><span>메모 (선택)</span></label>
@@ -2367,10 +2459,24 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
     q('#evAllDay').addEventListener('change', () => { syncAll(); if (!q('#evAllDay').checked) q('#evTimeIn').focus(); }); syncAll();
     q('#evNameIn').value = ev ? ev.title : ''; q('#evMemoIn').value = ev ? (ev.memo || '') : '';
     if (q('#evShare')) q('#evShare').checked = !!(ev && ev.shared);
+    let evCat = ev ? (ev.cat || '') : '';
+    const drawCats = () => {
+      const box = q('#evCats'); if (!box) return; box.replaceChildren();
+      const node = opt.node;
+      if (evCat && !catsOf(node).some(c => c.id === evCat)) evCat = '';
+      const mk = (id, name, color) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role','radio'); b.setAttribute('aria-checked', String(evCat === id));
+        if (color){ b.dataset.c = color; b.append(document.createElement('i')); } else b.className = 'none';
+        b.append(document.createTextNode(name)); b.addEventListener('click', () => { evCat = id; drawCats(); }); box.append(b); };
+      mk('', '없음');
+      catsOf(node).forEach(c => mk(c.id, c.name, c.color));
+      const man = document.createElement('button'); man.type = 'button'; man.className = 'cat-manage'; man.textContent = '+ 항목 관리';
+      man.addEventListener('click', () => openCatManager(node, drawCats)); box.append(man);
+    };
+    drawCats();
     const cnt = () => { q('#evCnt').textContent = `${q('#evNameIn').value.length}/50`; }; cnt();
     q('#evNameIn').addEventListener('input', cnt);
     function close(){ ov.remove(); document.removeEventListener('keydown', onKey, true); if (last && last.isConnected) last.focus(); }
-    function onKey(e){ if (e.key === 'Escape'){ e.stopPropagation(); close(); } if (e.key === 'Enter' && e.target.id === 'evNameIn' && !e.isComposing){ e.preventDefault(); submit(); } }
+    function onKey(e){ if (ov !== [...document.querySelectorAll('.overlay')].pop()) return; if (e.key === 'Escape'){ e.stopPropagation(); close(); } if (e.key === 'Enter' && e.target.id === 'evNameIn' && !e.isComposing){ e.preventDefault(); submit(); } }
     function submit(){
       const title = q('#evNameIn').value.trim(), date = q('#evDateIn').value;
       if (!title){ q('#evNameIn').focus(); q('#evNameIn').style.borderColor = 'var(--danger)'; return; }
@@ -2381,6 +2487,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
       if (endTime && endTime <= time){ q('#evEndIn').focus(); q('#evEndIn').style.borderColor = 'var(--danger)'; q('#evHint').textContent = '종료 시간은 시작 시간보다 늦어야 해요.'; return; }
       const data = { date, time, endTime, title, memo: q('#evMemoIn').value.trim() };
       if (q('#evShare')) data.shared = q('#evShare').checked;
+      if (q('#evCats')) data.cat = evCat;
       if (isNew) evList().push({ id: uid('ev_'), createdAt: Date.now(), ...data }); else Object.assign(ev, data);
       if (opt){ touch(); save(); close(); opt.after(date); return; }
       calState.sel = date; const d = keyToDate(date); calState.y = d.getFullYear(); calState.m = d.getMonth();
