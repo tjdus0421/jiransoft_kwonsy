@@ -10,12 +10,12 @@
 <style>
 /* Layout: left GNB (create + ordered project list) · right: selected project page with tabs. */
 :root{
-  /* 연한 딸기 우유: 우윳빛 분홍 바탕 + 딸기색 포인트 */
-  --bg:#FFFAFB; --surface:#FFFFFF; --surface-2:#FDF2F5; --side:#FFF4F6; --border:#F6E4E8;
-  --text:#3A2A2E; --text-dim:#6F585D; --text-faint:#A89398;
-  --accent:#CF5E7A; --accent-strong:#AD4561; --accent-tint:#FEEDF1; --danger:#B03A2E; --danger-tint:#FCEAE7;
-  --mark:#FFE3EA;
-  --shadow:0 1px 2px rgba(120,40,60,.06),0 8px 24px -14px rgba(120,40,60,.18);
+  /* 연한 하늘색: 맑은 하늘빛 바탕 + 하늘색 포인트 */
+  --bg:#F4F9FE; --surface:#FFFFFF; --surface-2:#E9F3FC; --side:#EDF5FD; --border:#D6E6F4;
+  --text:#1F2D3A; --text-dim:#4E6173; --text-faint:#8899AA;
+  --accent:#2E7CC2; --accent-strong:#1F5E99; --accent-tint:#E2EFFB; --danger:#B03A2E; --danger-tint:#FCEAE7;
+  --mark:#D3E9FB;
+  --shadow:0 1px 2px rgba(30,80,130,.06),0 8px 24px -14px rgba(30,80,130,.18);
   --c-gray-bg:#EEEEE8; --c-gray-fg:#4A524C;
   --c-green-bg:#E1F0E8; --c-green-fg:#1D6B4F;
   --c-blue-bg:#E2ECF8; --c-blue-fg:#2A5A94;
@@ -30,10 +30,10 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#1B1416; --surface:#241B1E; --surface-2:#2E2327; --side:#1F171A; --border:#44333A;
-    --text:#F7EBEE; --text-dim:#CDB4BA; --text-faint:#9A8087;
-    --accent:#F28DA6; --accent-strong:#F8B0C1; --accent-tint:#3E2129; --danger:#EE8C7E; --danger-tint:#3B1E19;
-    --mark:#6B2A3C;
+    --bg:#111820; --surface:#17212B; --surface-2:#1E2A36; --side:#141C25; --border:#2D3B4A;
+    --text:#E8F0F7; --text-dim:#AEBFCE; --text-faint:#7B8D9F;
+    --accent:#7DBEF0; --accent-strong:#A8D4F7; --accent-tint:#1A3046; --danger:#EE8C7E; --danger-tint:#3B1E19;
+    --mark:#22476A;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
     --c-gray-bg:#262A23; --c-gray-fg:#C6CCC0;
     --c-green-bg:#1C3329; --c-green-fg:#8FD9B6;
@@ -47,10 +47,10 @@
   }
 }
 :root[data-theme="dark"]{
-  --bg:#1B1416; --surface:#241B1E; --surface-2:#2E2327; --side:#1F171A; --border:#44333A;
-  --text:#F7EBEE; --text-dim:#CDB4BA; --text-faint:#9A8087;
-  --accent:#F28DA6; --accent-strong:#F8B0C1; --accent-tint:#3E2129; --danger:#EE8C7E; --danger-tint:#3B1E19;
-  --mark:#6B2A3C;
+  --bg:#111820; --surface:#17212B; --surface-2:#1E2A36; --side:#141C25; --border:#2D3B4A;
+  --text:#E8F0F7; --text-dim:#AEBFCE; --text-faint:#7B8D9F;
+  --accent:#7DBEF0; --accent-strong:#A8D4F7; --accent-tint:#1A3046; --danger:#EE8C7E; --danger-tint:#3B1E19;
+  --mark:#22476A;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
   --c-gray-bg:#262A23; --c-gray-fg:#C6CCC0;
   --c-green-bg:#1C3329; --c-green-fg:#8FD9B6;
@@ -224,7 +224,7 @@ button{cursor:pointer}
 .mm-all .mm-row .x{font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wg-row-wrap{padding:2px 0}
 .wg-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.wg{position:relative;aspect-ratio:1/1;border-radius:18px;border:0;padding:10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;overflow:hidden;box-shadow:0 6px 16px -8px rgba(120,40,60,.45);cursor:pointer;font-family:inherit;min-width:0}
+.wg{position:relative;aspect-ratio:1/1;border-radius:18px;border:0;padding:10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;overflow:hidden;box-shadow:0 6px 16px -8px rgba(30,80,130,.45);cursor:pointer;font-family:inherit;min-width:0}
 .wg:hover{transform:translateY(-1px)}
 @media (prefers-reduced-motion:no-preference){.wg{transition:transform .12s}}
 .wg .wl{font-size:10.5px;font-weight:600;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -248,7 +248,7 @@ button{cursor:pointer}
 .wg.t-timer.done{animation:wgblink 1s steps(2) 6}
 @keyframes wgblink{50%{filter:brightness(1.35)}}
 .wg.t-progress{background:linear-gradient(145deg,#B4A7D6,#6E5BA8)}
-.wg-row .wg{padding:6px 7px 6px;border-radius:14px;box-shadow:0 4px 10px -6px rgba(120,40,60,.45)}
+.wg-row .wg{padding:6px 7px 6px;border-radius:14px;box-shadow:0 4px 10px -6px rgba(30,80,130,.45)}
 .wg-row .wg .wv{font-size:14.5px;letter-spacing:-.03em}
 .wg-row .wg .wl{font-size:8.5px}
 .wg-row .wg .ws{font-size:8px}
@@ -417,7 +417,8 @@ button{cursor:pointer}
 .cat-row{display:flex;align-items:center;gap:8px}
 .cat-row .field{flex:1;padding:7px 10px}
 .cat-row .sws{display:flex;gap:3px;flex-wrap:wrap;max-width:190px}
-.cat-row .sw{width:20px;height:20px}
+.cat-row .sw{width:20px;height:20px;background:var(--cfg);box-shadow:none;opacity:.55}
+.cat-row .sw[aria-checked="true"]{opacity:1;outline:2px solid var(--cfg);outline-offset:2px;border-color:transparent!important}
 .cat-row .sw[aria-checked="true"]{border-color:var(--cfg);border-width:2px}
 .cat-row .x{border:0;background:transparent;color:var(--text-faint);width:26px;height:26px;border-radius:6px;flex:none}
 .cat-row .x:hover{background:var(--danger-tint);color:var(--danger)}
@@ -525,7 +526,7 @@ button{cursor:pointer}
 .cards.sorting,.cards.sorting .card{cursor:grabbing}
 .cards .card{cursor:grab}
 .card.card-slot{opacity:.35;outline:2px dashed var(--accent);outline-offset:-2px;transform:none}
-.card-ghost{position:fixed;z-index:50;pointer-events:none;margin:0;transform:rotate(-2deg) scale(1.04);box-shadow:0 14px 30px -10px rgba(120,40,60,.4);transition:none}
+.card-ghost{position:fixed;z-index:50;pointer-events:none;margin:0;transform:rotate(-2deg) scale(1.04);box-shadow:0 14px 30px -10px rgba(30,80,130,.4);transition:none}
 body.grabbing,body.grabbing *{cursor:grabbing!important}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 .cards .card{position:relative;padding-right:30px}
@@ -2114,7 +2115,7 @@ textarea.field{resize:vertical;min-height:120px;max-height:40vh;line-height:1.6}
 
   function openCardDialog(card, returnFocus){
     const isNew = !card;
-    const st = { color: card ? card.color : 'pink', emoji: card ? card.emoji : '📌', title: card ? card.title : '', body: card ? card.body : '' };
+    const st = { color: card ? card.color : 'blue', emoji: card ? card.emoji : '📌', title: card ? card.title : '', body: card ? card.body : '' };
     const last = returnFocus || document.activeElement;
     const ov = document.createElement('div'); ov.className = 'overlay';
     ov.innerHTML = `
