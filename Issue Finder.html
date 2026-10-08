@@ -48,10 +48,19 @@
   .card-title{font-weight:700;font-size:16.5px;margin:0;}
   .card-sub{color:var(--text-faint);font-size:13.5px;margin:-10px 0 0;}
 
-  .tabbar{display:flex;gap:6px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;align-self:flex-start;flex-wrap:wrap;}
-  .tab-btn{font-family:inherit;font-weight:600;font-size:13.5px;color:var(--text-dim);background:none;border:none;border-radius:9px;padding:9px 16px;cursor:pointer;transition:background .15s ease,color .15s ease;}
-  .tab-btn:hover{color:var(--text);}
-  .tab-btn[aria-selected="true"]{background:var(--surface);color:var(--accent-strong);box-shadow:var(--shadow);}
+  .topbar{display:flex;align-items:flex-start;gap:16px;}
+  .topbar header.page{flex:1;min-width:0;}
+  .iconbar{display:flex;gap:8px;flex:none;}
+  .icon-btn{position:relative;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:11px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;box-shadow:var(--shadow);transition:color .15s ease,border-color .15s ease,background .15s ease;}
+  .icon-btn svg{width:20px;height:20px;}
+  .icon-btn:hover{color:var(--accent);border-color:var(--accent);}
+  .icon-btn[aria-pressed="true"]{background:var(--accent-tint);color:var(--accent-strong);border-color:var(--accent);}
+  .icon-btn .tip{position:absolute;top:calc(100% + 6px);right:0;white-space:nowrap;font-size:12px;font-weight:600;background:var(--text);color:var(--bg);padding:4px 8px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5;}
+  .icon-btn:hover .tip,.icon-btn:focus-visible .tip{opacity:1;}
+  .panel-head{display:flex;align-items:center;gap:12px;}
+  .panel-head h2{margin:0;font-size:19px;font-weight:700;}
+  .back{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--text-dim);background:none;border:1px solid var(--border);border-radius:9px;padding:7px 12px;cursor:pointer;}
+  .back:hover{color:var(--accent);border-color:var(--accent);}
   .tabpanel{display:flex;flex-direction:column;gap:20px;}
   .tabpanel[hidden]{display:none;}
 
@@ -59,7 +68,7 @@
   .searchbox{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);border-radius:12px;padding:4px 6px 4px 14px;background:var(--surface);transition:border-color .15s ease;}
   .searchbox:focus-within{border-color:var(--accent);}
   .searchbox svg{width:20px;height:20px;color:var(--text-faint);flex:none;}
-  .searchbox input{flex:1;border:none;outline:none;background:none;font-family:inherit;font-size:16px;color:var(--text);padding:10px 0;min-width:0;}
+  .searchbox input,.searchbox input[type=text]{flex:1;border:none;outline:none;background:none;border-radius:0;font-family:inherit;font-size:16px;color:var(--text);padding:10px 0;min-width:0;}
   .searchbox .clear{border:none;background:none;color:var(--text-faint);font-size:13px;cursor:pointer;padding:8px 10px;font-family:inherit;}
   .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
   .chip{font-family:inherit;font-size:13px;font-weight:600;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:5px 12px;cursor:pointer;}
@@ -165,17 +174,23 @@
 </head>
 <body>
 <div class="wrap">
-  <header class="page">
-    <div class="eyebrow">JIRA 이슈 검색</div>
-    <h1>Issue Finder</h1>
-    <p class="lede">테스트현황·업데이트 내역 파일을 올려두면, 키워드나 비슷한 내용으로 이슈를 찾아줍니다.</p>
-    <div class="stats" id="stats"></div>
-  </header>
-
-  <div class="tabbar" role="tablist">
-    <button class="tab-btn" role="tab" data-tab="search" aria-selected="true">검색</button>
-    <button class="tab-btn" role="tab" data-tab="upload" aria-selected="false">자료 올리기</button>
-    <button class="tab-btn" role="tab" data-tab="settings" aria-selected="false">설정</button>
+  <div class="topbar">
+    <header class="page">
+      <div class="eyebrow">JIRA 이슈 검색</div>
+      <h1>Issue Finder</h1>
+      <p class="lede">테스트현황·업데이트 내역 파일을 올려두면, 키워드나 비슷한 내용으로 이슈를 찾아줍니다.</p>
+      <div class="stats" id="stats"></div>
+    </header>
+    <nav class="iconbar" aria-label="관리">
+      <button class="icon-btn" data-tab="upload" aria-pressed="false" aria-label="자료 올리기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0-4 4m4-4 4 4"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+        <span class="tip">자료 올리기</span>
+      </button>
+      <button class="icon-btn" data-tab="settings" aria-pressed="false" aria-label="설정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        <span class="tip">설정</span>
+      </button>
+    </nav>
   </div>
 
   <!-- 검색 -->
@@ -193,6 +208,7 @@
 
   <!-- 자료 올리기 -->
   <section class="tabpanel" id="tab-upload" hidden>
+    <div class="panel-head"><button class="back" data-back>← 검색</button><h2>자료 올리기</h2></div>
     <div class="card">
       <h2 class="card-title">1. 자료 종류</h2>
       <div class="seg" id="kindSeg"></div>
@@ -220,6 +236,7 @@
 
   <!-- 설정 -->
   <section class="tabpanel" id="tab-settings" hidden>
+    <div class="panel-head"><button class="back" data-back>← 검색</button><h2>설정</h2></div>
     <div class="card">
       <h2 class="card-title">특정 사용자</h2>
       <p class="card-sub">검색 결과에 이 사람이 남긴 마지막 댓글을 보여줍니다. 여러 명을 넣으면 그중 가장 마지막 댓글이 나와요.</p>
@@ -726,7 +743,7 @@ function runSearch() {
   $('#qclear').hidden = !q;
   const area = $('#resultArea');
   if (!issues.length) {
-    area.innerHTML = '<div class="empty">아직 학습한 자료가 없어요. <b>자료 올리기</b> 탭에서 파일을 올려 주세요.</div>';
+    area.innerHTML = '<div class="empty">아직 학습한 자료가 없어요. 오른쪽 위 <b>자료 올리기</b> 아이콘을 눌러 파일을 올려 주세요.</div>';
     return;
   }
   if (!q.trim()) {
@@ -792,11 +809,17 @@ $('#q').addEventListener('input', () => { clearTimeout(timer); timer = setTimeou
 $('#qclear').addEventListener('click', () => { $('#q').value = ''; runSearch(); $('#q').focus(); });
 
 /* ---------- 탭 ---------- */
-document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('.tab-btn').forEach((x) => x.setAttribute('aria-selected', x === b));
-  document.querySelectorAll('.tabpanel').forEach((p) => { p.hidden = p.id !== 'tab-' + b.dataset.tab; });
-  if (b.dataset.tab === 'search') $('#q').focus();
+// 우측 상단 아이콘: 한 번 누르면 열리고, 다시 누르거나 '← 검색'을 누르면 검색 화면으로
+function showTab(name) {
+  document.querySelectorAll('.icon-btn[data-tab]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tab === name));
+  document.querySelectorAll('.tabpanel').forEach((p) => { p.hidden = p.id !== 'tab-' + name; });
+  if (name === 'search') $('#q').focus();
+}
+document.querySelectorAll('.icon-btn[data-tab]').forEach((b) => b.addEventListener('click', () => {
+  showTab(b.getAttribute('aria-pressed') === 'true' ? 'search' : b.dataset.tab);
 }));
+document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => showTab('search')));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#tab-search').hidden) showTab('search'); });
 
 /* ---------- 업로드 ---------- */
 function renderKindSeg() {
@@ -906,7 +929,7 @@ $('#learnBtn').addEventListener('click', async () => {
   await store.set('sources', sources);
   pending = []; renderPending();
   rebuild();
-  setMsg('#uploadMsg', 'ok', `학습 완료 — 새 자료 ${added}개${replaced ? `, 교체 ${replaced}개` : ''}. 이제 <b>검색</b> 탭에서 찾아보세요.`);
+  setMsg('#uploadMsg', 'ok', `학습 완료 — 새 자료 ${added}개${replaced ? `, 교체 ${replaced}개` : ''}. <b>← 검색</b>을 눌러 찾아보세요.`);
 });
 
 function renderFileList() {
@@ -1002,7 +1025,7 @@ $('#wipeBtn').addEventListener('click', async (e) => {
   const src = await store.get('sources'); if (Array.isArray(src)) sources = src;
   $('#jiraBase').value = settings.jiraBase;
   renderKindSeg(); renderUserTags(); rebuild();
-  if (!sources.length) document.querySelector('[data-tab="upload"]').click();
+  if (!sources.length) showTab('upload');
 })();
 })();
 </script>
