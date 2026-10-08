@@ -1227,7 +1227,7 @@ $('#wipeBtn').addEventListener('click', async (e) => {
   const src = await store.get('sources'); if (Array.isArray(src)) sources = src;
   $('#jiraBase').value = settings.jiraBase;
   renderKindSeg(); renderUserTags(); rebuild();
-  if (!sources.length) showTab('upload');
+  showTab('search');
 })();
 })();
 </script>
