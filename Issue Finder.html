@@ -103,6 +103,30 @@
   mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px;}
   .empty{text-align:center;color:var(--text-faint);font-size:14px;padding:28px 12px;border:1.5px dashed var(--border);border-radius:12px;}
 
+  /* filters */
+  .filterwrap{display:flex;flex-direction:column;gap:10px;}
+  .ftoggle{display:inline-flex;align-items:center;gap:6px;}
+  .ftoggle svg{width:14px;height:14px;}
+  .ftoggle b{background:var(--accent);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;line-height:17px;}
+  .ftoggle[aria-expanded="true"]{border-color:var(--accent);color:var(--accent-strong);}
+  .savedlist{display:flex;gap:6px;flex-wrap:wrap;}
+  .saved{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;background:var(--surface);overflow:hidden;}
+  .saved button{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-dim);background:none;border:none;padding:4px 4px 4px 11px;cursor:pointer;}
+  .saved button + button{padding:4px 9px 4px 4px;color:var(--text-faint);}
+  .saved.on{border-color:var(--accent);background:var(--accent-tint);}
+  .saved.on button{color:var(--accent-strong);}
+  #filterPanel{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:12px;}
+  #filterPanel[hidden]{display:none;}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 12px;}
+  .fsel{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;color:var(--text-dim);min-width:0;}
+  .fsel select{width:100%;}
+  .fieldchecks{display:flex;flex-wrap:wrap;gap:8px 18px;}
+  .fieldchecks .check{margin-left:0;color:var(--text);}
+  .fieldchecks small{color:var(--text-faint);font-family:var(--mono);}
+  .r-fields{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--text-dim);}
+  .r-fields em{font-style:normal;color:var(--text-faint);margin-right:2px;}
+  button:disabled{opacity:.45;cursor:default;}
+
   /* upload */
   .seg{display:flex;gap:6px;flex-wrap:wrap;}
   .dropzone{border:1.5px dashed var(--border);border-radius:10px;padding:26px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s ease,background .15s ease;background:var(--surface-2);}
@@ -202,6 +226,14 @@
         <button class="clear" id="qclear" hidden>지우기</button>
       </div>
       <div class="filters" id="kindFilters"></div>
+      <div id="filterWrap" class="filterwrap">
+        <div class="filters">
+          <button class="chip ftoggle" id="filterToggle" aria-expanded="false"></button>
+          <div class="savedlist" id="savedFilters"></div>
+        </div>
+        <div class="tags" id="activeChips"></div>
+        <div id="filterPanel" hidden></div>
+      </div>
     </div>
     <div id="resultArea" class="results"></div>
   </section>
@@ -255,6 +287,12 @@
     </div>
 
     <div class="card">
+      <h2 class="card-title">검색 필터 항목</h2>
+      <p class="card-sub">검색 화면의 필터에 보일 항목을 고르세요. 항목은 올린 파일의 열에서 만들어져요(자료 올리기에서 열 용도를 “필터 항목”으로 지정). 프로젝트는 이슈 번호 앞부분으로 자동 구분돼요.</p>
+      <div class="fieldchecks" id="fieldChecks"></div>
+    </div>
+
+    <div class="card">
       <h2 class="card-title">JIRA 주소</h2>
       <p class="card-sub">이슈 번호를 누르면 이 주소 뒤에 번호를 붙여 엽니다.</p>
       <input type="text" id="jiraBase">
@@ -284,7 +322,9 @@
 const KINDS = ['테스트현황', '업데이트 내역', '기타'];
 const DEFAULT_SETTINGS = {
   users: [{ name: '권서연', id: '712020:593386fd-b7a0-4f6e-9253-cb4b03b3c08d' }],
-  jiraBase: 'https://jiran.atlassian.net/browse/'
+  jiraBase: 'https://jiran.atlassian.net/browse/',
+  hiddenFields: [],     // 검색 필터에서 숨길 항목
+  savedFilters: []      // [{ name, filters }]
 };
 const ROLES = [
   ['', '사용 안 함'],
@@ -293,6 +333,7 @@ const ROLES = [
   ['content', '내용'],
   ['status', '상태'],
   ['assignee', '담당자'],
+  ['filter', '필터 항목'],
   ['comment', '댓글'],
   ['cauthor', '댓글 작성자'],
   ['cdate', '댓글 작성일'],
@@ -345,6 +386,9 @@ let sources = [];   // {id,name,sheet,kind,uploadedAt,count,records:[...]}
 let issues = [];    // 병합된 이슈
 let index = null;   // 검색 인덱스
 let activeKind = '전체';
+let allFields = [];        // 자료에서 찾은 필터 항목 이름
+let activeFilters = {};    // { '프로젝트': 'OFFICE', '담당자': '김철수', ... }
+let filterOpen = false;
 let onlyWithComment = false;
 let uploadKind = KINDS[0];
 let pending = [];   // 업로드 대기 시트들
@@ -432,15 +476,40 @@ function parseCommentCell(text) {
 }
 
 /* ---------- 열 자동 인식 ---------- */
+// 필터로 쓸 열 이름 → 화면에 보일 이름 (JIRA 영문 내보내기 포함)
+const FIELD_ALIASES = [
+  [/^(parent ?summary|상위 ?항목|상위 ?이슈|상위 ?작업|에픽 ?(이름|명)?|epic ?(name|link)?|parent)$/, '상위 항목'],
+  [/^(reporter|보고자|등록자|작성자)$/, '보고자'],
+  [/^(assignee|담당자|처리자)$/, '담당자'],
+  [/^(status|상태|진행 ?상태|처리 ?상태)$/, '상태'],
+  [/^(priority|우선 ?순위)$/, '우선순위'],
+  [/^(issue ?type|이슈 ?유형|유형|구분)$/, '이슈 유형'],
+  [/^(fix ?versions?(\/s)?|수정 ?버전|배포 ?버전|버전)$/, '수정 버전'],
+  [/^(affects? ?versions?(\/s)?|영향 ?버전)$/, '영향 버전'],
+  [/^(components?(\/s)?|컴포넌트|모듈)$/, '컴포넌트'],
+  [/^(labels?|레이블|라벨)$/, '레이블'],
+  [/^(sprint|스프린트)$/, '스프린트'],
+  [/^(resolution|해결 ?상태|해결)$/, '해결 상태'],
+  [/^(severity|심각도)$/, '심각도']
+];
+function fieldLabel(h) {
+  let s = String(h ?? '').trim().replace(/^custom ?field ?\((.*)\)$/i, '$1').trim();
+  const n = norm(s).replace(/\s+/g, ' ');
+  for (const [re, label] of FIELD_ALIASES) if (re.test(n)) return label;
+  return s.replace(/\s+/g, ' ');
+}
 function guessRole(h) {
-  const s = norm(h).replace(/\s+/g, ' ').trim();
+  const s0 = norm(h).replace(/\s+/g, ' ').trim();
+  const s = s0.replace(/^custom ?field ?\((.*)\)$/, '$1').trim();
   if (!s) return '';
+  // 필터용 항목 (담당자·상태는 아래에서 따로)
+  if (/^(parent ?summary|parent|상위 ?(항목|이슈|작업)|에픽.*|epic.*|reporter|보고자|등록자|priority|우선 ?순위|issue ?type|이슈 ?유형|fix ?versions?.*|affects? ?versions?.*|수정 ?버전|영향 ?버전|배포 ?버전|components?.*|컴포넌트|모듈|labels?|레이블|라벨|sprint|스프린트|resolution|해결 ?상태|severity|심각도|플랫폼|platform|환경|environment|os|브라우저|browser|빌드|build)$/.test(s) || /차수|qc|회차|라운드|round/.test(s)) return 'filter';
   if (/(댓글|comment|코멘트).*(작성자|author|by)/.test(s)) return 'cauthor';
   if (/(댓글|comment|코멘트).*(일자|일시|날짜|date|작성일)/.test(s)) return 'cdate';
   if (/^(issue ?key|key|키|이슈 ?키|이슈 ?번호|이슈 ?id|jira|jira ?(키|번호|id|이슈)|티켓|ticket|bts|일감 ?번호)$/.test(s) || /issue key|이슈 ?(키|번호)|jira ?(키|번호|id|링크)/.test(s)) return 'key';
   if (/^(summary|요약|제목|title|이슈명|이슈 ?제목|항목|테스트 ?항목|기능)$/.test(s) || /summary|요약|제목/.test(s)) return 'title';
   if (/^(status|상태|진행 ?상태|처리 ?상태|결과|판정|테스트 ?결과)$/.test(s)) return 'status';
-  if (/assignee|담당|처리자|reporter|보고자|등록자/.test(s)) return 'assignee';
+  if (/assignee|담당|처리자/.test(s)) return 'assignee';
   if (/comment|댓글|코멘트|의견|비고|메모|note|답변|회신/.test(s)) return 'comment';
   if (/description|내용|설명|현상|상세|재현|증상|기대|변경 ?사항|수정 ?사항|업데이트|원인|조치|절차|steps?/.test(s)) return 'content';
   return '';
@@ -476,6 +545,12 @@ function autoRoles(headers, body) {
     });
     if (bestI >= 0 && bestRatio >= 0.5) roles[bestI] = 'key';
   }
+  // JIRA 'Parent' 열이 숫자 ID뿐이면 필터에서 빼기
+  roles.forEach((v, i) => {
+    if (v !== 'filter') return;
+    const vals = body.slice(0, 100).map((r) => String(r[i] ?? '').trim()).filter(Boolean);
+    if (vals.length && vals.every((x) => /^\d+$/.test(x)) && fieldLabel(headers[i]) === '상위 항목') roles[i] = '';
+  });
   // 이름 없는 열이라도 내용이 길면 검색에는 쓰기
   roles.forEach((v, i) => {
     if (v) return;
@@ -491,6 +566,8 @@ function buildRecords(sheet) {
   const idx = (r) => roles.map((v, i) => (v === r ? i : -1)).filter((i) => i >= 0);
   const kI = idx('key'), tI = idx('title'), cI = idx('content'), sI = idx('status'), aI = idx('assignee');
   const cmI = idx('comment'), caI = idx('cauthor'), cdI = idx('cdate'), xI = idx('extra');
+  // 필터 항목: 열 번호 → 이름 (담당자·상태도 필터로 쓴다)
+  const fCols = roles.map((v, i) => (v === 'filter' ? [i, fieldLabel(headers[i])] : v === 'assignee' ? [i, '담당자'] : v === 'status' ? [i, '상태'] : null)).filter(Boolean);
   const val = (r, is) => is.map((i) => String(r[i] ?? '').trim()).filter(Boolean);
   const map = new Map(); let skipped = 0; let lastKey = null; let seq = 0;
   for (const r of body) {
@@ -508,7 +585,14 @@ function buildRecords(sheet) {
     if (!key) { skipped++; continue; }
     lastKey = key;
     let rec = map.get(key);
-    if (!rec) { rec = { key, title: '', content: [], status: '', assignee: '', comments: [], extra: [] }; map.set(key, rec); }
+    if (!rec) { rec = { key, title: '', content: [], status: '', assignee: '', comments: [], extra: [], fields: {} }; map.set(key, rec); }
+    for (const [i, label] of fCols) {
+      for (const part of String(r[i] ?? '').split(/\s*[,;\n]\s*/)) {
+        const v = part.trim(); if (!v) continue;
+        const arr = rec.fields[label] || (rec.fields[label] = []);
+        if (!arr.includes(v)) arr.push(v);
+      }
+    }
     if (titles.length && !rec.title) rec.title = titles.join(' / ');
     for (const c of contents) if (!rec.content.includes(c)) rec.content.push(c);
     const st = val(r, sI); if (st.length) rec.status = st.join(' / ');
@@ -558,10 +642,11 @@ function rebuild() {
   for (const src of ordered) {
     for (const r of src.records) {
       let it = byKey.get(r.key);
-      if (!it) { it = { key: r.key, title: '', altTitles: [], contents: [], content: '', status: '', assignee: '', extra: '', comments: [], kinds: new Set(), srcs: [] }; byKey.set(r.key, it); }
+      if (!it) { it = { key: r.key, project: r.key.split('-')[0], fields: {}, title: '', altTitles: [], contents: [], content: '', status: '', assignee: '', extra: '', comments: [], kinds: new Set(), srcs: [] }; byKey.set(r.key, it); }
       if (r.title) { if (it.title && it.title !== r.title && !it.altTitles.includes(it.title)) it.altTitles.push(it.title); it.title = r.title; }
       if (r.content && !it.contents.includes(r.content)) it.contents.unshift(r.content);
       if (r.status) it.status = r.status;
+      for (const [label, vals] of Object.entries(r.fields || {})) if (vals.length) it.fields[label] = vals.slice();
       if (r.assignee) it.assignee = r.assignee;
       if (r.extra) it.extra = r.extra;
       it.kinds.add(src.kind);
@@ -593,7 +678,12 @@ function rebuild() {
     for (const g of it._heads) df.set('h:' + g, (df.get('h:' + g) || 0) + 1);
   }
   index = { df, N: issues.length };
-  renderStats(); renderKindFilters(); renderFileList(); renderAuthorSuggest(); runSearch();
+  // 필터 항목 목록 (이슈가 많은 순)
+  const fc = new Map();
+  for (const it of issues) for (const k of Object.keys(it.fields)) fc.set(k, (fc.get(k) || 0) + 1);
+  allFields = [...fc.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  for (const k of Object.keys(activeFilters)) if (k !== '프로젝트' && !allFields.includes(k)) delete activeFilters[k];
+  renderStats(); renderKindFilters(); renderFilterPanel(); renderFieldSettings(); renderFileList(); renderAuthorSuggest(); runSearch();
 }
 
 /* ---------- 특정 사용자 댓글 ---------- */
@@ -618,6 +708,88 @@ function lastComment(list) {
   return list.reduce((a, b) => (b.order > a.order ? b : a));
 }
 
+/* ---------- 필터 ---------- */
+const visibleFields = () => allFields.filter((f) => !settings.hiddenFields.includes(f));
+function passFilters(it, skip) {
+  if (activeKind !== '전체' && !it.kinds.has(activeKind)) return false;
+  for (const [k, v] of Object.entries(activeFilters)) {
+    if (k === skip || !v) continue;
+    if (k === '프로젝트') { if (it.project !== v) return false; continue; }
+    if (!(it.fields[k] || []).includes(v)) return false;
+  }
+  return true;
+}
+const hasActiveFilters = () => Object.values(activeFilters).some(Boolean);
+function valueCounts(label) {
+  // 다른 조건은 그대로 두고 이 항목의 값별 이슈 수
+  const m = new Map();
+  for (const it of issues) {
+    if (!passFilters(it, label)) continue;
+    const vals = label === '프로젝트' ? [it.project] : (it.fields[label] || []);
+    for (const v of vals) m.set(v, (m.get(v) || 0) + 1);
+  }
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), 'ko'));
+}
+function renderFilterPanel() {
+  const n = Object.values(activeFilters).filter(Boolean).length;
+  const btn = $('#filterToggle');
+  btn.setAttribute('aria-expanded', filterOpen);
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z"/></svg>필터${n ? ` <b>${n}</b>` : ''}`;
+  // 저장한 필터
+  $('#savedFilters').innerHTML = settings.savedFilters.map((f, i) => {
+    const on = JSON.stringify(f.filters) === JSON.stringify(Object.fromEntries(Object.entries(activeFilters).filter(([, v]) => v)));
+    return `<span class="saved${on ? ' on' : ''}"><button data-apply="${i}" title="${esc(Object.entries(f.filters).map(([k, v]) => k + ': ' + v).join(' · '))}">${esc(f.name)}</button><button data-unsave="${i}" aria-label="${esc(f.name)} 삭제">×</button></span>`;
+  }).join('');
+  // 적용 중인 조건 칩
+  $('#activeChips').innerHTML = Object.entries(activeFilters).filter(([, v]) => v).map(([k, v]) =>
+    `<span class="tag"><span>${esc(k)}: ${esc(v)}</span><button data-clear="${esc(k)}" aria-label="${esc(k)} 조건 빼기">×</button></span>`).join('') +
+    (n ? '<button class="more" data-clearall>모두 지우기</button>' : '');
+  const panel = $('#filterPanel');
+  panel.hidden = !filterOpen;
+  if (!filterOpen) return;
+  const labels = ['프로젝트', ...visibleFields()];
+  if (!issues.length) { panel.innerHTML = '<p class="hint">자료를 올리면 프로젝트·담당자·보고자 같은 필터가 생겨요.</p>'; return; }
+  panel.innerHTML = `<div class="fgrid">${labels.map((label) => {
+    const vc = valueCounts(label).slice(0, 300);
+    const cur = activeFilters[label] || '';
+    if (cur && !vc.some(([v]) => v === cur)) vc.unshift([cur, 0]);
+    return `<label class="fsel"><span>${esc(label)}</span><select data-f="${esc(label)}">
+      <option value="">전체</option>${vc.map(([v, c]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(v)} (${c})</option>`).join('')}
+    </select></label>`;
+  }).join('')}</div>
+  <div class="row fsave">
+    <input type="text" id="filterName" placeholder="지금 조건에 이름 붙여 저장 (예: OFFICE QC 2차)" style="flex:1;min-width:200px">
+    <button class="ghost small" id="filterSave" ${n ? '' : 'disabled'}>필터 저장</button>
+  </div>
+  ${allFields.length > visibleFields().length ? `<p class="hint">숨긴 항목 ${allFields.length - visibleFields().length}개 — 설정에서 다시 보이게 할 수 있어요.</p>` : ''}`;
+}
+$('#filterToggle').addEventListener('click', () => { filterOpen = !filterOpen; renderFilterPanel(); });
+$('#filterWrap').addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-f]'); if (!sel) return;
+  activeFilters[sel.dataset.f] = sel.value;
+  if (!sel.value) delete activeFilters[sel.dataset.f];
+  renderFilterPanel(); runSearch();
+});
+$('#filterWrap').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.clear) { delete activeFilters[b.dataset.clear]; }
+  else if (b.hasAttribute('data-clearall')) { activeFilters = {}; }
+  else if (b.dataset.apply != null) {
+    const f = settings.savedFilters[+b.dataset.apply]; if (!f) return;
+    activeFilters = { ...f.filters };
+  } else if (b.dataset.unsave != null) {
+    settings.savedFilters.splice(+b.dataset.unsave, 1); await store.set('settings', settings);
+  } else if (b.id === 'filterSave') {
+    const name = $('#filterName').value.trim() || Object.values(activeFilters).filter(Boolean).join(' · ');
+    const filters = Object.fromEntries(Object.entries(activeFilters).filter(([, v]) => v));
+    settings.savedFilters = settings.savedFilters.filter((f) => f.name !== name);
+    settings.savedFilters.push({ name, filters });
+    await store.set('settings', settings);
+  } else return;
+  renderFilterPanel(); runSearch();
+});
+$('#filterWrap').addEventListener('keydown', (e) => { if (e.target.id === 'filterName' && e.key === 'Enter') $('#filterSave').click(); });
+
 /* ---------- 검색 ---------- */
 function searchIssues(q) {
   const raw = q.trim();
@@ -637,7 +809,7 @@ function searchIssues(q) {
 
   const exact = [], similar = [];
   for (const it of issues) {
-    if (activeKind !== '전체' && !it.kinds.has(activeKind)) continue;
+    if (!passFilters(it)) continue;
     let score = 0; let matchedAll = tokens.length > 0;
     if (keyM && it.key === keyM[1]) score += 1000;
     else if (keyM && it.key.startsWith(keyM[1])) score += 200;
@@ -703,7 +875,8 @@ function resultCard(entry, tokens, isExact) {
   const anyLast = lastComment(it.comments);
   const base = settings.jiraBase || '';
   const link = base ? esc(base.replace(/\/?$/, '/') + it.key) : '#';
-  const badge = isExact
+  const badge = isExact === null ? ''
+    : isExact
     ? '<span class="pill match">일치</span>'
     : `<span class="pill sim" title="비슷한 정도 ${Math.round(entry.sim * 100)}점">${entry.sim >= 0.5 ? '매우 비슷' : entry.sim >= 0.35 ? '비슷' : '조금 비슷'}</span>`;
   const kinds = [...it.kinds].map((k) => `<span class="pill kind">${esc(k)}</span>`).join('');
@@ -734,8 +907,15 @@ function resultCard(entry, tokens, isExact) {
     ${it.title ? `<h4 class="r-title">${highlight(it.title, tokens)}</h4>` : ''}
     ${bodyText ? `<p class="r-body clamp" data-full="${esc(bodyText)}">${highlight(snip, tokens)}</p>${needMore ? '<button class="more" data-body>전체 보기</button>' : ''}` : ''}
     ${cmt}
-    <div class="r-foot">출처: ${esc(srcNames.join(', '))} · 마지막 학습 ${esc(fmtDate(latestSrc.uploadedAt))}${it.assignee ? ' · 담당 ' + esc(it.assignee) : ''}</div>
+    ${fieldLine(it)}
+    <div class="r-foot">출처: ${esc(srcNames.join(', '))} · 마지막 학습 ${esc(fmtDate(latestSrc.uploadedAt))}</div>
   </article>`;
+}
+function fieldLine(it) {
+  const parts = visibleFields().filter((f) => f !== '상태' && it.fields[f] && it.fields[f].length).slice(0, 6)
+    .map((f) => `<span><em>${esc(f)}</em> ${esc(it.fields[f].join(', '))}</span>`);
+  if (!parts.length && it.assignee) parts.push(`<span><em>담당자</em> ${esc(it.assignee)}</span>`);
+  return parts.length ? `<div class="r-fields">${parts.join('')}</div>` : '';
 }
 let lastTokens = [];
 function runSearch() {
@@ -744,6 +924,15 @@ function runSearch() {
   const area = $('#resultArea');
   if (!issues.length) {
     area.innerHTML = '<div class="empty">아직 학습한 자료가 없어요. 오른쪽 위 <b>자료 올리기</b> 아이콘을 눌러 파일을 올려 주세요.</div>';
+    return;
+  }
+  if (!q.trim() && hasActiveFilters()) {
+    const list = issues.filter((it) => passFilters(it) && (!onlyWithComment || it.comments.some((c) => userMatch(c.author))))
+      .sort((a, b) => a.project.localeCompare(b.project) || (+b.key.split('-')[1]) - (+a.key.split('-')[1]));
+    lastTokens = [];
+    area.innerHTML = list.length
+      ? `<div class="group-head"><h3>필터 결과</h3><span>${list.length}건${list.length > 200 ? ' · 상위 200건만 표시' : ''}</span></div>` + list.slice(0, 200).map((it) => resultCard({ it, sim: 0 }, [], null)).join('')
+      : '<div class="empty">조건에 맞는 이슈가 없어요.</div>';
     return;
   }
   if (!q.trim()) {
@@ -799,7 +988,7 @@ function renderKindFilters() {
 }
 $('#kindFilters').addEventListener('click', (e) => {
   const b = e.target.closest('[data-kind]'); if (!b) return;
-  activeKind = b.dataset.kind; renderKindFilters(); runSearch();
+  activeKind = b.dataset.kind; renderKindFilters(); renderFilterPanel(); runSearch();
 });
 $('#kindFilters').addEventListener('change', (e) => {
   if (e.target.id === 'onlyMine') { onlyWithComment = e.target.checked; runSearch(); }
@@ -950,6 +1139,18 @@ $('#fileList').addEventListener('click', async (e) => {
 });
 
 /* ---------- 설정 ---------- */
+function renderFieldSettings() {
+  const el = $('#fieldChecks');
+  if (!allFields.length) { el.innerHTML = '<span class="hint">자료를 올리면 담당자·보고자·상위 항목·QC 차수 같은 항목이 여기에 나와요.</span>'; return; }
+  const cnt = (f) => issues.filter((it) => it.fields[f]).length;
+  el.innerHTML = allFields.map((f) => `<label class="check"><input type="checkbox" data-field="${esc(f)}" ${settings.hiddenFields.includes(f) ? '' : 'checked'}> ${esc(f)} <small>${cnt(f)}</small></label>`).join('');
+}
+$('#fieldChecks').addEventListener('change', async (e) => {
+  const f = e.target.dataset.field; if (!f) return;
+  settings.hiddenFields = settings.hiddenFields.filter((x) => x !== f);
+  if (!e.target.checked) { settings.hiddenFields.push(f); delete activeFilters[f]; }
+  await store.set('settings', settings); renderFilterPanel(); runSearch();
+});
 async function saveSettings() { await store.set('settings', settings); renderStats(); renderUserTags(); renderAuthorSuggest(); runSearch(); }
 function renderUserTags() {
   $('#userTags').innerHTML = settings.users.length
@@ -1022,6 +1223,7 @@ $('#wipeBtn').addEventListener('click', async (e) => {
 (async () => {
   const s = await store.get('settings'); if (s) settings = { ...DEFAULT_SETTINGS, ...s };
   settings.users = (settings.users || []).map((u) => (typeof u === 'string' ? (isId(u) ? { name: '', id: u } : { name: u, id: '' }) : u));
+  settings.hiddenFields = settings.hiddenFields || []; settings.savedFilters = settings.savedFilters || [];
   const src = await store.get('sources'); if (Array.isArray(src)) sources = src;
   $('#jiraBase').value = settings.jiraBase;
   renderKindSeg(); renderUserTags(); rebuild();
